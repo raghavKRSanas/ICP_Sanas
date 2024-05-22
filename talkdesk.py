@@ -3,6 +3,8 @@ from selenium import webdriver
 from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 import json
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
 import virtualJack as vj
 import os
 
@@ -44,6 +46,9 @@ def readInputValues(filename):
 def callEnd(driver):
     iframeHandler(driver, title='Conversations')
     time.sleep(5)
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.XPATH, "//i[normalize-space()='call_end']"))
+    ).click()
     driver.find_element(By.XPATH, "//i[normalize-space()='call_end']").click()
     time.sleep(5)
     try:
@@ -70,7 +75,11 @@ def callStart(driver, countryCode, phoneNumber):
     time.sleep(10)
     conversationID = driver.find_element(By.XPATH, "//span[@data-bi='snapshot-tab-conversation-details-card"
                                                    "-interaction_id']").text
-    print(conversationID)
+    callStart = 0
+    while callStart==0:
+        callStatus = driver.find_element(By.XPATH, "//p[@data-testid='call-state-text']").text
+        if "Talking" in callStatus:
+            callStart = 1
     iframeHandler(driver, default=True)
     return conversationID
 
