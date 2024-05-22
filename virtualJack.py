@@ -3,7 +3,7 @@ import sounddevice as sd
 import soundfile as sf
 import time
 
- 
+
 def list_sound_devices():
     """
     List all available sound devices along with their device IDs and additional details.
@@ -24,9 +24,8 @@ def list_sound_devices():
              return idx
 
 
-def play_audio_files_to_vac(file_paths, vac_device_id):
-    for file_path in file_paths:
-        print(f"Playing: {file_path}")
+def play_audio_files_to_vac(file_path, vac_device_id):
+        #print(f"Playing: {file_path}")
         data, samplerate = sf.read(file_path)
         sd.play(data, samplerate, device=vac_device_id)
         time.sleep(data.shape[0] / samplerate)  # Sleep duration based on audio duration
