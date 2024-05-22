@@ -46,9 +46,6 @@ def readInputValues(filename):
 def callEnd(driver):
     iframeHandler(driver, title='Conversations')
     time.sleep(5)
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, "//i[normalize-space()='call_end']"))
-    ).click()
     driver.find_element(By.XPATH, "//i[normalize-space()='call_end']").click()
     time.sleep(5)
     try:
