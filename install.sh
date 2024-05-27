@@ -7,3 +7,7 @@ pip install sounddevice
 pip install simplejson
 
 pip install numpy
+
+pip install psutil
+
+pip install functools
