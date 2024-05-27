@@ -1,12 +1,30 @@
 import time
 from selenium import webdriver
-from selenium.common import NoSuchElementException
+from selenium.common import NoSuchElementException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
 import json
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait
 import virtualJack as vj
+import cpuUsage as cu
+import functools
 import os
+
+
+def trackCPUUsage(before=True, after=True):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if before:
+                pid, cpu_usage = cu.appCpuUsage()
+                print(f"CPU usage before {func.__name__} is {cpu_usage} with pid: {pid}")
+            result = func(*args, **kwargs)
+            if after:
+                pid, cpu_usage = cu.appCpuUsage()
+                print(f"CPU usage after {func.__name__} is {cpu_usage} with pid: {pid}")
+            return result
+        return wrapper
+    return decorator
 
 
 def permissionAccess():
@@ -18,23 +36,30 @@ def permissionAccess():
     return chrome_options
 
 
-def iframeHandler(driver, title=None, default=None):
-    if title != None:
-        iframe = driver.find_elements(By.TAG_NAME, "iframe")
-        for frame in iframe:
+def iframeHandler(driver, title=None, default=False):
+    time.sleep(15)
+    if title:
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        for frame in iframes:
             if frame.get_attribute("title") == title:
-                iframe = frame
+                driver.switch_to.frame(frame)
                 break
-        driver.switch_to.frame(iframe)
     if default:
         driver.switch_to.default_content()
 
 
+@trackCPUUsage(before=True, after=True)
 def dropDownSelection(driver, cssSelector, selectText):
     elements = driver.find_elements(By.CSS_SELECTOR, cssSelector)
     for ele in elements:
-        if selectText in ele.text:
+        try:
+            if selectText in ele.text:
+                ele.click()
+                return
+        except StaleElementReferenceException:
+            time.sleep(1)  # Wait a bit before retrying
             ele.click()
+            return
 
 
 def readInputValues(filename):
@@ -43,45 +68,42 @@ def readInputValues(filename):
     return config
 
 
+@trackCPUUsage(before=True, after=True)
 def callEnd(driver):
     iframeHandler(driver, title='Conversations')
-    time.sleep(5)
-    driver.find_element(By.XPATH, "//i[normalize-space()='call_end']").click()
-    time.sleep(5)
     try:
-        driver.find_element(By.XPATH, "//i[normalize-space()='close_outline']").click()
-        time.sleep(5)
-        driver.find_element(By.XPATH, "//span[contains(text(),'Yes, dismiss')]").click()
-    except NoSuchElementException:
-        print("Sumbmit dailogue box was not visible")
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//i[normalize-space()='call_end']"))).click()
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//i[normalize-space()='close_outline']"))).click()
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'Yes, dismiss')]"))).click()
+    except (NoSuchElementException, TimeoutException):
+        print("Exception: Submit dialogue box was not visible while ending the call (Differs from User to User)")
     iframeHandler(driver, default=True)
-    time.sleep(5)
 
 
+@trackCPUUsage(before=True, after=True)
 def callStart(driver, countryCode, phoneNumber):
-    driver.find_element(By.XPATH, "//button[@aria-label='Conversations']").click()
-    time.sleep(15)
+    WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Conversations']"))).click()
     iframeHandler(driver, title='Conversations')
     driver.find_element(By.XPATH, "//span[@class='co-list__item-content'][normalize-space()='+1']").click()
-    time.sleep(2)
-    countryCodeXpath = "//span[normalize-space()='" + countryCode + "']"
-    driver.find_element(By.XPATH, countryCodeXpath).click()
     driver.find_element(By.XPATH, "//input[@placeholder='Type or paste a number']").send_keys(phoneNumber)
     driver.find_element(By.XPATH, "//button[@class='react-button_1-3-0_co-button react-button_1-3-0_co-button--primary "
                                   "react-button_1-3-0_co-button--medium react-button_1-3-0_co-button--full-width']").click()
-    time.sleep(10)
-    conversationID = driver.find_element(By.XPATH, "//span[@data-bi='snapshot-tab-conversation-details-card"
-                                                   "-interaction_id']").text
+    driver.implicitly_wait(5)
     callStart = 0
-    while callStart==0:
+    while callStart == 0:
         callStatus = driver.find_element(By.XPATH, "//p[@data-testid='call-state-text']").text
         if "Talking" in callStatus:
             callStart = 1
+    conversationID = driver.find_element(By.XPATH, "//span[@data-bi='snapshot-tab-conversation-details-card"
+                                                   "-interaction_id']").text
     iframeHandler(driver, default=True)
     return conversationID
 
 
-#Reading all values from json file
+# Reading all values from json file
 inputData = readInputValues('variable.json')
 userEmail = inputData['userEmail']
 password = inputData['password']
@@ -96,32 +118,32 @@ wav_files = [os.path.join(directory_path, file) for file in os.listdir(directory
 chrome_options = permissionAccess()
 driver = webdriver.Chrome(options=chrome_options)
 driver.get("https://sanasai.talkdeskid.com/login")
-time.sleep(5)
 
-#Talkdesk Login
-driver.find_element(By.XPATH, "//input[@placeholder='email@company.com']").send_keys(userEmail)
+
+# Talkdesk Login
+WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='email@company.com']"))).send_keys(userEmail)
 driver.find_element(By.XPATH, "//input[@placeholder='password']").send_keys(password)
 driver.find_element(By.XPATH, "//button[@type='submit']").click()
-time.sleep(20)
+driver.implicitly_wait(5)
 
-#Microphone configuration setup
+# Microphone configuration setup
 driver.find_element(By.XPATH, "//button[@class='react-avatar_1-3-0_co-avatar--clickable']").click()
 driver.find_element(By.XPATH, "//p[normalize-space()='Conversations Settings']").click()
-time.sleep(10)
 iframeHandler(driver, title='conversation-settings')
 driver.find_element(By.XPATH, "//span[@class='react-typography_1-4-1_co-text react-typography_1-4-1_co-text--medium "
                               "react-typography_1-4-1_co-text--weight-regular "
                               "react-typography_1-4-1_co-text--truncated']").click()
 dropDownSelection(driver, cssSelector="li[class='react-list_1-1-7_co-list__item'] a", selectText=audioInput)
 iframeHandler(driver, default=True)
-time.sleep(15)
+driver.implicitly_wait(15)
 
-#Dailer setup
 
+# Dialer setup
 for file in wav_files:
     conversationID = callStart(driver, countryCode, phoneNumber)
     vj.play_audio_files_to_vac(file, vac_device_id)
-    print("audio played in location {} and conversation ID is {} ".format(file, conversationID))
+    print(f"audio played in location {file} and conversation ID is {conversationID}")
     callEnd(driver)
 
 driver.quit()
