@@ -1,8 +1,16 @@
 {
-  "userEmail": "namrata@sanas.ai",
-  "password": "Sanas@123",
-  "audioInput": "Sanas Microphone (Sanas Virtual Audio)",
-  "countryCode": "India (+91)",
-  "phoneNumber": "7017786472",
-  "directory_path" : "C:\\Users\\RaghavKR\\Desktop"
+  "appLocation" : "C:\\Program Files\\Sanas.ai\\Sanas Accent Translator\\Sanas.AccentConverter.exe",
+  "directory_path" : "C:\\Users\\RaghavKR\\Downloads\\TEST",
+  "dailerTesting" : "TalkDesk",
+  "Talkdesk" :
+  {
+    "userEmail": "namrata@sanas.ai",
+    "password": "Sanas@123",
+    "audioInput": "Microphone (Sanas Virtual Audio)",
+    "countryCode": "India (+91)",
+    "phoneNumber": "+917899632046",
+    "newSession" : "True",
+    "numberRetryCalls" : 3
+  }
+
 }
