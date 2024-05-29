@@ -5,10 +5,27 @@ from selenium.webdriver.common.by import By
 import json
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.keys import Keys
 import virtualJack as vj
 import cpuUsage as cu
 import functools
+import logging
 import os
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Add a console handler explicitly
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(console_handler)
+
+# Add file handler to log to a file
+file_handler = logging.FileHandler('app.log')
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
 
 
 def trackCPUUsage(before=True, after=True):
@@ -20,6 +37,7 @@ def trackCPUUsage(before=True, after=True):
                 print(f"CPU usage before {func.__name__} is {cpu_usage} with pid: {pid}")
             result = func(*args, **kwargs)
             if after:
+                time.sleep(2)
                 pid, cpu_usage = cu.appCpuUsage()
                 print(f"CPU usage after {func.__name__} is {cpu_usage} with pid: {pid}")
             return result
@@ -55,6 +73,7 @@ def dropDownSelection(driver, cssSelector, selectText):
         try:
             if selectText in ele.text:
                 ele.click()
+                logging.info("{} is selected as input microphone".format(ele.text))
                 return
         except StaleElementReferenceException:
             time.sleep(1)  # Wait a bit before retrying
@@ -68,82 +87,172 @@ def readInputValues(filename):
     return config
 
 
-@trackCPUUsage(before=True, after=True)
-def callEnd(driver):
-    iframeHandler(driver, title='Conversations')
+def callEndDismiss(driver):
     try:
-        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//i[normalize-space()='call_end']"))).click()
         WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//i[normalize-space()='close_outline']"))).click()
         WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'Yes, dismiss')]"))).click()
     except (NoSuchElementException, TimeoutException):
-        print("Exception: Submit dialogue box was not visible while ending the call (Differs from User to User)")
+        logging.exception("Submit dialogue box was not visible while ending the call (Differs from User to User)")
     iframeHandler(driver, default=True)
 
 
 @trackCPUUsage(before=True, after=True)
-def callStart(driver, countryCode, phoneNumber):
-    WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Conversations']"))).click()
+def callEnd(driver):
     iframeHandler(driver, title='Conversations')
-    driver.find_element(By.XPATH, "//span[@class='co-list__item-content'][normalize-space()='+1']").click()
-    driver.find_element(By.XPATH, "//input[@placeholder='Type or paste a number']").send_keys(phoneNumber)
-    driver.find_element(By.XPATH, "//button[@class='react-button_1-3-0_co-button react-button_1-3-0_co-button--primary "
-                                  "react-button_1-3-0_co-button--medium react-button_1-3-0_co-button--full-width']").click()
-    driver.implicitly_wait(5)
-    callStart = 0
-    while callStart == 0:
-        callStatus = driver.find_element(By.XPATH, "//p[@data-testid='call-state-text']").text
-        if "Talking" in callStatus:
-            callStart = 1
-    conversationID = driver.find_element(By.XPATH, "//span[@data-bi='snapshot-tab-conversation-details-card"
-                                                   "-interaction_id']").text
+    WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//i[normalize-space()='call_end']"))).click()
+    callEndDismiss(driver)
+
+
+def dailingNumber(driver, phoneNumber):
+    iframeHandler(driver, title='Conversations')
+    global numberRetryCalls
+    while True:
+        try:
+            driver.find_element(By.XPATH, "//input[@placeholder='Type or paste a number']").send_keys(phoneNumber + Keys.RETURN)
+            callStatus = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//p[@data-testid='call-state-text']")))
+            mode = None
+            while True:
+                if "Dialing" in callStatus.text:
+                    if mode != "Dialing":
+                        logging.info("Call has been initiated to {} waiting for receiver".format(phoneNumber))
+                        mode = "Dialing"
+                if "Talking" in callStatus.text:
+                    logging.info("Call has been received at receivers end")
+                    numberRetryCalls = 3
+                    return
+                if "Wrap-up" in callStatus.text:
+                    logging.info("Call was not received . Number of Retrys left: {}".format(numberRetryCalls))
+                    if numberRetryCalls > 0:
+                        numberRetryCalls -= 1
+                        callEndDismiss(driver)
+                        callStart(driver, phoneNumber, overRidingSession=True)
+                    return
+        except:
+            if numberRetryCalls > 0:
+                numberRetryCalls -= 1
+                logging.error("Dailing number {} Failed due exception cases. Number of Retrys left {}".format(phoneNumber,numberRetryCalls))
+                callEndDismiss(driver)
+                callStart(driver, phoneNumber, overRidingSession=True)
+
+
+def popUpClose(driver):
+    try:
+        driver.find_element(By.XPATH,
+                            "(//i[contains(@class,'react-icon_1-10-2_co-icon react-icon_1-10-2_co-icon--small')])[6]").click()
+
+    except :
+        logging.info("Pop up not found")
+
+
+def createNewSession(driver, overRidingSession):
+    iframeHandler(driver, title='Conversations')
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//span[normalize-space()='Start new session']"))).click()
+        logging.info("Started new Session since it was used on other system")
+        iframeHandler(driver, default=True)
+        popUpClose(driver)
+    except (NoSuchElementException,TimeoutException):
+        logging.info("No Session is logged in before")
+
+def getConversationID(driver):
+    iframeHandler(driver, title='Conversations')
+    for count in range(2):
+        try:
+            conversationID = driver.find_element(By.XPATH, "//span[@data-bi='snapshot-tab-conversation-details-card"
+                                                               "-interaction_id']").text
+            return conversationID
+        except NoSuchElementException:
+            logging.error("Caller Recording ID not found.")
     iframeHandler(driver, default=True)
+
+
+@trackCPUUsage(before=True, after=True)
+def callStart(driver, phoneNumber, overRidingSession=True):
+    conversationID = None
+    WebDriverWait(driver, 20).until(
+        EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Conversations']"))).click()
+    createNewSession(driver, overRidingSession)
+    dailingNumber(driver, phoneNumber)
+    conversationID = getConversationID(driver)
     return conversationID
 
 
+def talkdeskLogin(driver, userEmail, password):
+    for count in range(3):
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='email@company.com']"))).send_keys(userEmail)
+        driver.find_element(By.XPATH, "//input[@placeholder='password']").send_keys(password)
+        driver.find_element(By.XPATH, "//button[@type='submit']").click()
+        try:
+            if driver.find_element(By.XPATH, "//div[@class='co-message__content']"):
+                logging.info("Trying to Log in for {} time".format(count + 1))
+            if count == 2:
+                logging.error("Login Unsuccessful")
+                return
+        except:
+            logging.info("Login Successful")
+            return
+
+def downloadRecording(driver, conversationID):
+    WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Activities']"))).click()
+
+
 # Reading all values from json file
-inputData = readInputValues('variable.json')
-userEmail = inputData['userEmail']
-password = inputData['password']
-audioInput = inputData['audioInput']
-countryCode = inputData['countryCode']
-phoneNumber = inputData['phoneNumber']
+inputData = readInputValues('variable2.json')
+userEmail = inputData['Talkdesk']['userEmail']
+password = inputData['Talkdesk']['password']
+audioInput = inputData['Talkdesk']['audioInput']
+countryCode = inputData['Talkdesk']['countryCode']
+phoneNumber = inputData['Talkdesk']['phoneNumber']
 directory_path = inputData['directory_path']
-
-# Configuration setup
-vac_device_id = int(vj.list_sound_devices())
-wav_files = [os.path.join(directory_path, file) for file in os.listdir(directory_path) if file.endswith('.wav')]
-chrome_options = permissionAccess()
-driver = webdriver.Chrome(options=chrome_options)
-driver.get("https://sanasai.talkdeskid.com/login")
+appPath = inputData['appLocation']
+overRidingSession = inputData['Talkdesk']['newSession']
+numberRetryCalls = inputData['Talkdesk']['numberRetryCalls']
 
 
-# Talkdesk Login
-WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='email@company.com']"))).send_keys(userEmail)
-driver.find_element(By.XPATH, "//input[@placeholder='password']").send_keys(password)
-driver.find_element(By.XPATH, "//button[@type='submit']").click()
-driver.implicitly_wait(5)
+def main():
+    # Configuration setup
+    vac_device_id = int(vj.list_sound_devices())
+    wav_files = [os.path.join(directory_path, file) for file in os.listdir(directory_path) if file.endswith('.wav')]
+    chrome_options = permissionAccess()
+    driver = webdriver.Chrome(options=chrome_options)
+    driver.get("https://sanasai.talkdeskid.com/login")
 
-# Microphone configuration setup
-driver.find_element(By.XPATH, "//button[@class='react-avatar_1-3-0_co-avatar--clickable']").click()
-driver.find_element(By.XPATH, "//p[normalize-space()='Conversations Settings']").click()
-iframeHandler(driver, title='conversation-settings')
-driver.find_element(By.XPATH, "//span[@class='react-typography_1-4-1_co-text react-typography_1-4-1_co-text--medium "
-                              "react-typography_1-4-1_co-text--weight-regular "
-                              "react-typography_1-4-1_co-text--truncated']").click()
-dropDownSelection(driver, cssSelector="li[class='react-list_1-1-7_co-list__item'] a", selectText=audioInput)
-iframeHandler(driver, default=True)
-driver.implicitly_wait(15)
+    # Talkdesk Login
+    talkdeskLogin(driver, userEmail, password)
+    driver.implicitly_wait(5)
+
+    # Microphone configuration setup
+    driver.find_element(By.XPATH, "//button[@class='react-avatar_1-3-0_co-avatar--clickable']").click()
+    driver.find_element(By.XPATH, "//p[normalize-space()='Conversations Settings']").click()
+    iframeHandler(driver, title='conversation-settings')
+    driver.find_element(By.XPATH,
+                        "//span[@class='react-typography_1-4-1_co-text react-typography_1-4-1_co-text--medium "
+                        "react-typography_1-4-1_co-text--weight-regular "
+                        "react-typography_1-4-1_co-text--truncated']").click()
+    dropDownSelection(driver, cssSelector="li[class='react-list_1-1-7_co-list__item'] a", selectText=audioInput)
+    iframeHandler(driver, default=True)
+    driver.implicitly_wait(5)
+
+    # Dialer setup
+    for file in wav_files:
+        conversationID = callStart(driver, phoneNumber)
+        if conversationID:
+            logging.info("Audio file started playing")
+            vj.play_audio_files_to_vac(file, vac_device_id)
+            logging.info(f"audio played in location {file} and conversation ID is {conversationID}")
+            logging.info("Audio file ended.")
+            logging.info("Ending the call.")
+            callEnd(driver)
+            #downloadRecording()
+    driver.quit()
 
 
-# Dialer setup
-for file in wav_files:
-    conversationID = callStart(driver, countryCode, phoneNumber)
-    vj.play_audio_files_to_vac(file, vac_device_id)
-    print(f"audio played in location {file} and conversation ID is {conversationID}")
-    callEnd(driver)
-
-driver.quit()
+if __name__ == "__main__":
+    main()
