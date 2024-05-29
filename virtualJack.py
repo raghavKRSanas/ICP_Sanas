@@ -1,7 +1,8 @@
-import os
 import sounddevice as sd
 import soundfile as sf
-import time
+import allUsage as au
+import logging
+
 
 
 def list_sound_devices():
@@ -25,9 +26,13 @@ def list_sound_devices():
 
 
 def play_audio_files_to_vac(file_path, vac_device_id):
-        #print(f"Playing: {file_path}")
         data, samplerate = sf.read(file_path)
+        #logging.info(f"Started Playing: {file_path}")
         sd.play(data, samplerate, device=vac_device_id)
-        time.sleep(data.shape[0] / samplerate)  # Sleep duration based on audio duration
+        duration = data.shape[0] / samplerate
+        au.monitor_performance(duration=duration)
         sd.stop()  # Stop playback
+
+
+
 
