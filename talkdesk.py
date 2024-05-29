@@ -11,21 +11,14 @@ import cpuUsage as cu
 import functools
 import logging
 import os
+from datetime import datetime
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+log_filename = datetime.now().strftime('automation_log_%Y%m%d_%H%M%S.log')
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    handlers=[logging.FileHandler(log_filename), logging.StreamHandler()])
+
 logger = logging.getLogger(__name__)
-
-# Add a console handler explicitly
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-logger.addHandler(console_handler)
-
-# Add file handler to log to a file
-file_handler = logging.FileHandler('app.log')
-file_handler.setLevel(logging.INFO)
-file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-logger.addHandler(file_handler)
 
 
 def trackCPUUsage(before=True, after=True):
@@ -204,7 +197,7 @@ def downloadRecording(driver, conversationID):
 
 
 # Reading all values from json file
-inputData = readInputValues('variable.json')
+inputData = readInputValues('variable2.json')
 userEmail = inputData['Talkdesk']['userEmail']
 password = inputData['Talkdesk']['password']
 audioInput = inputData['Talkdesk']['audioInput']
