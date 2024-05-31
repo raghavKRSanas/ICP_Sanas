@@ -48,15 +48,17 @@ def permissionAccess():
 
 
 def iframeHandler(driver, title=None, default=False):
-    time.sleep(15)
+    time.sleep(7)
     if title:
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
         for frame in iframes:
             if frame.get_attribute("title") == title:
                 driver.switch_to.frame(frame)
+                logging.info("Switching to iframe : {}".format(title))
                 break
     if default:
         driver.switch_to.default_content()
+        logging.info("Switching to iframe : Default")
 
 
 @trackCPUUsage(before=True, after=True)
@@ -91,7 +93,7 @@ def callEndDismiss(driver):
     iframeHandler(driver, default=True)
 
 
-@trackCPUUsage(before=True, after=True)
+@trackCPUUsage(before=False, after=True)
 def callEnd(driver):
     iframeHandler(driver, title='Conversations')
     WebDriverWait(driver, 10).until(
@@ -122,7 +124,7 @@ def dailingNumber(driver, phoneNumber):
                     if numberRetryCalls > 0:
                         numberRetryCalls -= 1
                         callEndDismiss(driver)
-                        callStart(driver, phoneNumber, overRidingSession=True)
+                        callStart(driver, phoneNumber, overRidingSession=False)
                     return
         except:
             if numberRetryCalls > 0:
@@ -141,19 +143,20 @@ def popUpClose(driver):
         logging.info("Pop up not found")
 
 
-def createNewSession(driver, overRidingSession):
-    iframeHandler(driver, title='Conversations')
+def createNewSession(driver, overRidingSession=True):
     try:
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//span[normalize-space()='Start new session']"))).click()
-        logging.info("Started new Session since it was used on other system")
-        iframeHandler(driver, default=True)
-        popUpClose(driver)
+        if overRidingSession:
+            iframeHandler(driver, title='Conversations')
+            WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//span[normalize-space()='Start new session']"))).click()
+            logging.info("Started new Session since it was used on other system")
+            iframeHandler(driver, default=True)
+            popUpClose(driver)
     except (NoSuchElementException,TimeoutException):
         logging.info("No Session is logged in before")
 
 def getConversationID(driver):
-    iframeHandler(driver, title='Conversations')
+    #iframeHandler(driver, title='Conversations')
     for count in range(2):
         try:
             conversationID = driver.find_element(By.XPATH, "//span[@data-bi='snapshot-tab-conversation-details-card"
@@ -161,13 +164,13 @@ def getConversationID(driver):
             return conversationID
         except NoSuchElementException:
             logging.error("Caller Recording ID not found.")
-    iframeHandler(driver, default=True)
+    #iframeHandler(driver, default=True)
 
 
-@trackCPUUsage(before=True, after=True)
+@trackCPUUsage(before=True, after=False)
 def callStart(driver, phoneNumber, overRidingSession=True):
     conversationID = None
-    WebDriverWait(driver, 20).until(
+    WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Conversations']"))).click()
     createNewSession(driver, overRidingSession)
     dailingNumber(driver, phoneNumber)
