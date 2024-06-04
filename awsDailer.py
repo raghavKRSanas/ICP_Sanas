@@ -31,11 +31,21 @@ def permissionAccess():
 
 
 def awsLogin(driver,userEmail,password):
-    WebDriverWait(driver, 5).until(
-        EC.element_to_be_clickable((By.XPATH, "//input[@id='wdc_username']"))).send_keys(userEmail)
-    driver.find_element(By.XPATH, "//input[@id='wdc_password']").send_keys(password)
-    driver.find_element(By.XPATH, "//button[@id='wdc_login_button']").click()
-    time.sleep(5)
+    for count in range(4):
+        try:
+            if count == 3:
+                logging.error("Login Unsuccessful after 3 Retries")
+                return
+            WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//input[@id='wdc_username']"))).send_keys(userEmail)
+            driver.find_element(By.XPATH, "//input[@id='wdc_password']").send_keys(password)
+            driver.find_element(By.XPATH, "//button[@id='wdc_login_button']").click()
+            logging.info("Login Successful")
+            return
+        except (NoSuchElementException, TimeoutException):
+            logging.info("Due to exceptions not able to Login")
+
+
 
 def callStart(driver,phoneNumber):
     global numberRetryCalls
@@ -137,6 +147,39 @@ def main():
             logging.info("Audio file ended.")
             callEnd(driver)
 
+    driver.quit()
+
+def convertTable(table_con):
+    table_dict = {}
+    for tbody in table_con:
+        rows = tbody.find_elements(By.CSS_SELECTOR, "tr")
+        for row in rows:
+            cols = row.find_elements(By.CSS_SELECTOR, "td")
+            # Ensure there are at least two columns to use since the second column is the download file name
+            if len(cols) >= 2:
+                key = cols[1].text  # Column 2 as key
+                value = [col.text for i, col in enumerate(cols) if i != 1]  # Rest of the row as value
+                table_dict[key] = value
+    return table_dict
+
+
+def downloadAudio(driver):
+    driver.get("https://sanas-connect.my.connect.aws/users#/edit")
+    awsLogin(driver, userEmail, password)
+    time.sleep(5)
+    ele1 = driver.find_element(By.CSS_SELECTOR, "lily-navigation").shadow_root
+    ele1.find_element(By.CSS_SELECTOR, "li[title='Analytics and optimization']").click()
+    ele1.find_element(By.CSS_SELECTOR, "a[title='Contact search']").click()
+    time.sleep(5)
+    ele1 = driver.find_element(By.CSS_SELECTOR, "contact-search-page").shadow_root
+    ele2 = ele1.find_element(By.CSS_SELECTOR, 'div > div:nth-of-type(1)').shadow_root
+    ele6 = ele2.find_element(By.CSS_SELECTOR, "contact-search-table-widget[data-testid='search-results__table']").shadow_root
+    ele6.find_element(By.CSS_SELECTOR, "button[aria-label='Download recording']").click()
+    name = ele6.find_element(By.CSS_SELECTOR, "a").text
+    logging.info("Downloaded")
+    table_con = ele6.find_elements(By.CSS_SELECTOR, "tbody[role='rowgroup']")
+    callDetails = convertTable(table_con)
+    print("Call details for the downloaded file {} is  {}  ".format(name, callDetails[name]))
     driver.quit()
 
 
