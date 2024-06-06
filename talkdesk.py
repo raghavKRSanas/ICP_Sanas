@@ -200,7 +200,7 @@ def downloadRecording(driver, conversationID):
 
 
 # Reading all values from json file
-inputData = readInputValues('variable2.json')
+inputData = readInputValues('variable.json')
 userEmail = inputData['Talkdesk']['userEmail']
 password = inputData['Talkdesk']['password']
 audioInput = inputData['Talkdesk']['audioInput']
