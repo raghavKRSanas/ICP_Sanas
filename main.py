@@ -10,7 +10,7 @@ def readInputValues(filename):
 
 
 #Reading required values
-inputData = readInputValues('variable2.json')
+inputData = readInputValues('variable.json')
 appPath = inputData['appLocation']
 dialerTesting = inputData['dialerTesting']
 
