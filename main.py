@@ -16,7 +16,7 @@ dialerTesting = inputData['dialerTesting']
 
 #Dailer and respective dailer python file to import and run
 files = {
-    'TalkDesk': 'talkdesk',
+    'Talkdesk': 'talkdesk',
     '8X8': '8X8',
     'AWS': 'awsDailer'
 }
