@@ -1,18 +1,19 @@
 import json
+import downloadApp as dapp
+import launchApplication as lapp
 from datetime import datetime
 import logging
-
-
 def readInputValues(filename):
     with open(filename, 'r') as file:
         config = json.load(file)
     return config
 
-
 #Reading required values
-inputData = readInputValues('variable.json')
+inputData = readInputValues('variable2.json')
 appPath = inputData['appLocation']
 dialerTesting = inputData['dialerTesting']
+url = inputData['url']
+download_dir = inputData['downloadDir']
 
 #Dailer and respective dailer python file to import and run
 files = {
@@ -31,6 +32,9 @@ def main():
                         handlers=[logging.FileHandler(log_filename), logging.StreamHandler()])
 
     logger = logging.getLogger(__name__)
+    # dapp.downloadApp(url, download_dir)
+    # dapp.installApp(url, download_dir)
+    # lapp.launchAPP(appPath)
     importModule = files[dialerTesting]
     dailerPy = __import__(importModule)
     dailerPy.main()
