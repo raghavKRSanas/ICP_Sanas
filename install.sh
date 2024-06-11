@@ -10,4 +10,6 @@ pip install numpy
 
 pip install psutil
 
-pip install functools
+pip install tqdm
+
+
