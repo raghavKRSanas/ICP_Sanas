@@ -1,16 +1,2 @@
-packages that needs to be installed:
-
-pip install soundfile
-
-pip install selenium
-
-pip install sounddevice
-
-pip install simplejson
-
-pip install numpy
-
-pip install psutil
-
-pip install functools
+Packages that needs to be installed to run the code is mentioned in install.sh file
 
