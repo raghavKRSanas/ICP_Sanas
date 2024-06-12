@@ -1,0 +1,41 @@
+import os
+import sounddevice as sd
+import soundfile as sf
+import time
+
+def find_vac_device():
+    """
+    Find the Virtual Audio Cable (VAC) device that meets the specified criteria.
+    """
+    devices = sd.query_devices()
+    for device in devices:
+        if device['name'] == 'Line 1 (Virtual Audio Cable)' and \
+           sd.query_hostapis(device['hostapi'])['name'] == 'MME' and \
+           device['max_output_channels'] == 2 and \
+           device['default_samplerate'] == 44100.0:
+            print("Virtual Audio Cable (VAC) device meeting criteria found:")
+            print(f"    Name: {device['name']}")
+            print(f"    Device ID: {device['index']}")
+            return device
+    print("Virtual Audio Cable (VAC) device meeting criteria not found.")
+    return None
+
+def play_audio_files_to_vac(file_paths):
+    vac_device = find_vac_device()
+    if vac_device is None:
+        return
+
+    for file_path in file_paths:
+        print(f"Playing: {file_path}")
+        data, samplerate = sf.read(file_path)
+        sd.play(data, samplerate, device=vac_device['index'])
+        sd.wait()  # Wait until playback is finished
+
+# Directory containing WAV files
+directory_path = "C:\\Users\\Raj\\Downloads\\test"
+
+# Get list of WAV files in the directory
+wav_files = [os.path.join(directory_path, file) for file in os.listdir(directory_path) if file.endswith('.wav')]
+
+# Process and play each audio file in the directory through the virtual audio cable
+play_audio_files_to_vac(wav_files)
