@@ -1,0 +1,21 @@
+import os
+import zipfile
+
+
+def unzip_all_files_in_directory(source_dir, destination_dir):
+    if not os.path.exists(source_dir):
+        raise FileNotFoundError(f"The source directory {source_dir} does not exist.")
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
+    files = os.listdir(source_dir)
+    zip_files = [f for f in files if f.lower().endswith('.zip')]
+    for zip_file in zip_files:
+        zip_file_path = os.path.join(source_dir, zip_file)
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+            zip_ref.extractall(destination_dir)
+            print(f"Extracted {zip_file} to {destination_dir}")
+
+
+source_dir = r'C:\Users\RaghavKR\Downloads\recordings'
+destination_dir = r'C:\Users\RaghavKR\Downloads\extracted_recordings'
+unzip_all_files_in_directory(source_dir, destination_dir)
