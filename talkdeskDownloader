@@ -7,6 +7,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import logging
+import os
+from datetime import datetime
 
 
 def iframeHandler(driver, title=None, default=False):
@@ -54,8 +56,11 @@ def createNewSession(driver, overRidingSession=True):
         logging.info("No Session is logged in before")
 
 
-def permissionAccess():
+def permissionAccess(download_dir):
     preferences = {
+        "download.default_directory": download_dir,
+        "download.directory_upgrade": True,
+        "safebrowsing.enabled": True,  # To bypass safe browsing warnings
         "profile.default_content_setting_values.media_stream_mic": 1  # 1 to allow, 2 to block
     }
     chrome_options = webdriver.ChromeOptions()
@@ -72,7 +77,16 @@ def popUpClose(driver):
 
 
 def main():
-    chrome_options = permissionAccess()
+    log_filename = datetime.now().strftime('automation_log_%Y%m%d_%H%M%S.log')
+    log_filename = 'Talkdesk_Download_' + log_filename
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        handlers=[logging.FileHandler(log_filename), logging.StreamHandler()])
+
+    download_dir = r"C:\Users\RaghavKR\Downloads\recordings"
+    if not os.path.exists(download_dir):
+        os.makedirs(download_dir)
+    chrome_options = permissionAccess(download_dir)
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     talkdeskLogin(driver, "namrata@sanas.ai", "Sanas@123")
     # Navigate to the specified URL
@@ -86,11 +100,12 @@ def main():
 
     try:
         time.sleep(10)
-        print("sleep done")
         iframeHandler(driver, "Activities")
-        conversationIDList = []
-        while not conversationIDList:
+        conversationIDList = ['c24fa56ffdb44c29aa3871e301cbb607', '4f6a0b834dcb46308ab04a3bee5a369e', '0c596a7488e2468ba3c7c6bd126572a9', '228596a9894645268fd1e22fe0ec2d6a', '96007f67a5784fc1806b828e6c861917', 'c070cb07d14847bca75e382e42b0da29', '26f69acb9900459994745a8273d934da', '26f69acb9900459994745a8273d934da', 'a5fffde011d14b1fa4dc187f9430c4e0', '2688378dc1364352a5f459da76999576', '64e6efe948a2497dbb01c76e940b5c80']
+        while conversationIDList:
+            #print("inside while")
             for i in range(10):
+                #print("insidde for")
                 xpath = '/html[1]/body[1]/div[1]/div[1]/div[1]/div[1]/div[4]/table[1]/tbody[1]/tr[' + str(
                     i + 1) + ']/td[2]/div[1]/p[1]'
                 elements = driver.find_element(By.XPATH, xpath)
@@ -112,6 +127,7 @@ def main():
 
                 finally:
                     if not conversationIDList:
+                        logging.info("Downloaded all files")
                         break
                 time.sleep(5)
             # Next page
