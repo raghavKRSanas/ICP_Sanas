@@ -35,7 +35,7 @@ def downloadApp(url, download_dir):
         logging.info(f"Failed to download the file. Status code: {response.status_code}")
 
 
-def installApp(fileName, download_dir):
+def installApp(url, download_dir):
     # Installation
     file_name = url.split('/')[-1]
     file_path = os.path.join(download_dir, file_name)
