@@ -9,6 +9,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 import logging
 import os
 from datetime import datetime
+import unzipStore as us
+import winapps
+import sys
 
 
 def iframeHandler(driver, title=None, default=False):
@@ -53,6 +56,7 @@ def createNewSession(driver, overRidingSession=True):
             iframeHandler(driver, default=True)
             popUpClose(driver)
     except (NoSuchElementException,TimeoutException):
+        iframeHandler(driver, default=True)
         logging.info("No Session is logged in before")
 
 
@@ -68,6 +72,23 @@ def permissionAccess(download_dir):
     return chrome_options
 
 
+def getAppVersion():
+    for app in winapps.list_installed():
+        if "Sanas Accent Translator" in app.name:
+            #print(f"Name: {app.name}, Version: {app.version}")
+            return app.version
+
+
+def getModelVersion():
+    folder_path = "C:\\Program Files\\Sanas.ai\\Sanas Accent Translator\\Models"
+    file_name_without_extension = ''
+    if os.path.exists(folder_path) and os.path.isdir(folder_path):
+        file_names = os.listdir(folder_path)
+        file_name_without_extension = os.path.splitext(file_names[0])[0]
+    else:
+        logging.error("The specified folder does not exist or is not a directory.")
+    return file_name_without_extension
+
 def popUpClose(driver):
     try:
         driver.find_element(By.XPATH,
@@ -76,66 +97,85 @@ def popUpClose(driver):
         logging.info("Pop up not found")
 
 
-def main():
+def main(conversationIDDict, downloadDir, downloadDestination):
     log_filename = datetime.now().strftime('automation_log_%Y%m%d_%H%M%S.log')
     log_filename = 'Talkdesk_Download_' + log_filename
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                         handlers=[logging.FileHandler(log_filename), logging.StreamHandler()])
 
-    download_dir = r"C:\Users\RaghavKR\Downloads\recordings"
-    if not os.path.exists(download_dir):
-        os.makedirs(download_dir)
-    chrome_options = permissionAccess(download_dir)
+    if not os.path.exists(downloadDir):
+        os.makedirs(downloadDir)
+    chrome_options = permissionAccess(downloadDir)
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     talkdeskLogin(driver, "namrata@sanas.ai", "Sanas@123")
     # Navigate to the specified URL
     driver.maximize_window()
     time.sleep(10)
-    WebDriverWait(driver, 10).until(
+    WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Conversations']"))).click()
     createNewSession(driver)
-    WebDriverWait(driver, 10).until(
+    WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Activities']"))).click()
 
     try:
         time.sleep(10)
         iframeHandler(driver, "Activities")
-        conversationIDList = ['c24fa56ffdb44c29aa3871e301cbb607', '4f6a0b834dcb46308ab04a3bee5a369e', '0c596a7488e2468ba3c7c6bd126572a9', '228596a9894645268fd1e22fe0ec2d6a', '96007f67a5784fc1806b828e6c861917', 'c070cb07d14847bca75e382e42b0da29', '26f69acb9900459994745a8273d934da', '26f69acb9900459994745a8273d934da', 'a5fffde011d14b1fa4dc187f9430c4e0', '2688378dc1364352a5f459da76999576', '64e6efe948a2497dbb01c76e940b5c80']
+        conversationIDList  = list(conversationIDDict.keys())
+        boundNum = 2*len(conversationIDList)
         while conversationIDList:
-            #print("inside while")
             for i in range(10):
-                #print("insidde for")
-                xpath = '/html[1]/body[1]/div[1]/div[1]/div[1]/div[1]/div[4]/table[1]/tbody[1]/tr[' + str(
-                    i + 1) + ']/td[2]/div[1]/p[1]'
-                elements = driver.find_element(By.XPATH, xpath)
-                elements.click()
-                time.sleep(5)
-                try:
-                    conversation = driver.find_element(By.XPATH,
-                                                       "/html/body/div/div/div[2]/div/div[3]/div/div/div[3]/div/div/div[1]/table/tbody/tr[8]/td/div/div[1]/div/div/div/p").text
-                    if conversation in conversationIDList:
-                        driver.find_element(By.XPATH, "//i[normalize-space()='download']").click()
-                        logging.info("Downloaded file for converstion ID {}".format(conversation))
-                        conversationIDList.remove(conversation)
-                except NoSuchElementException:
-                    logging.info("conversation ID was not found")
-                try:
-                    driver.find_element(By.XPATH, "//i[normalize-space()='close']").click()
-                except:
-                    logging.info("Close is not found ")
+                success = False
+                while not success:
+                    xpath = '/html[1]/body[1]/div[1]/div[1]/div[1]/div[1]/div[4]/table[1]/tbody[1]/tr[' + str(
+                        i + 1) + ']/td[2]/div[1]/p[1]'
+                    elements = driver.find_element(By.XPATH, xpath)
+                    elements.click()
+                    time.sleep(5)
+                    try:
+                        conversation = driver.find_element(By.XPATH,
+                                                           "/html/body/div/div/div[2]/div/div[3]/div/div/div[3]/div/div/div[1]/table/tbody/tr[8]/td/div/div[1]/div/div/div/p").text
+                        success = True
+                        boundNum -= 1
+                        if conversation in conversationIDList:
+                            driver.find_element(By.XPATH, "//i[normalize-space()='download']").click()
+                            logging.info("Downloaded file for converstion ID {} for the source {} ".format(conversation,
+                                                                                                           conversationIDDict[conversation]))
+                            time.sleep(3)
+                            appVersion = getAppVersion()
+                            modelVersion = getModelVersion()
+                            newName = conversationIDDict[conversation] + "_appVersion_" + appVersion + "_modelVersion_" + modelVersion
+                            us.unzip_latest_folder(downloadDir, downloadDestination, newName)
+                            conversationIDList.remove(conversation)
+                    except NoSuchElementException:
+                        logging.info("conversation ID was not found")
+                    try:
+                        driver.find_element(By.XPATH, "//i[normalize-space()='close']").click()
+                    except:
+                        driver.find_element(By.XPATH, "//i[normalize-space()='close']").click()
+                        logging.info("Close is not found ")
 
-                finally:
-                    if not conversationIDList:
-                        logging.info("Downloaded all files")
-                        break
-                time.sleep(5)
+                    finally:
+                        if boundNum == 0:
+                            for ele in conversationIDList:
+                                logging.error("{} file with conversation ID {} was not found".format(conversationIDDict[ele], ele))
+                            driver.quit()
+                            sys.exit()
+                        if not conversationIDList:
+                            logging.info("Downloaded all files")
+                            driver.quit()
+                            sys.exit()
+                    time.sleep(5)
             # Next page
             driver.find_element(By.XPATH, "/html/body/div/div/div[1]/div/div[6]/div[1]/nav/a[2]/span[1]").click()
+            time.sleep(3)
         driver.quit()
-    except NoSuchElementException:
+    except Exception as e:
+        print(f"An error occurred: {e}")
         logging.error("failed due to no element exception")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     conversationIDList = {'BNS_429_9_Sneha_128BF_VERYLOW_Female_IN-Hindi_1714467721784.wav': 'effc16b4d9c44be5aa8bd7b8c52c9afd', 'Recognizer_Geetha_VeryNoisy_100db_Normal_Telekonnectors_Female_IN-Tamil_1706687306038.wav': 'eef0321b11ac4ed1b5f138ac4f4b8b6b'}
+#     downloadDir = r"C:\Users\RaghavKR\Downloads\recordings"
+#     main(conversationIDList, downloadDir)
