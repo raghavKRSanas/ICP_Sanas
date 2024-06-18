@@ -11,14 +11,6 @@ import cpuUsage as cu
 import functools
 import logging
 import os
-from datetime import datetime
-
-log_filename = datetime.now().strftime('automation_log_%Y%m%d_%H%M%S.log')
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler(log_filename), logging.StreamHandler()])
-
-logger = logging.getLogger(__name__)
 
 
 def trackCPUUsage(before=True, after=True):
@@ -30,7 +22,6 @@ def trackCPUUsage(before=True, after=True):
                 print(f"CPU usage before {func.__name__} is {cpu_usage} with pid: {pid}")
             result = func(*args, **kwargs)
             if after:
-                time.sleep(2)
                 pid, cpu_usage = cu.appCpuUsage()
                 print(f"CPU usage after {func.__name__} is {cpu_usage} with pid: {pid}")
             return result
@@ -138,8 +129,7 @@ def popUpClose(driver):
     try:
         driver.find_element(By.XPATH,
                             "(//i[contains(@class,'react-icon_1-10-2_co-icon react-icon_1-10-2_co-icon--small')])[6]").click()
-
-    except :
+    except (NoSuchElementException,TimeoutException):
         logging.info("Pop up not found")
 
 
@@ -156,7 +146,6 @@ def createNewSession(driver, overRidingSession=True):
         logging.info("No Session is logged in before")
 
 def getConversationID(driver):
-    #iframeHandler(driver, title='Conversations')
     for count in range(2):
         try:
             conversationID = driver.find_element(By.XPATH, "//span[@data-bi='snapshot-tab-conversation-details-card"
@@ -164,7 +153,6 @@ def getConversationID(driver):
             return conversationID
         except NoSuchElementException:
             logging.error("Caller Recording ID not found.")
-    #iframeHandler(driver, default=True)
 
 
 @trackCPUUsage(before=True, after=False)
@@ -193,10 +181,6 @@ def talkdeskLogin(driver, userEmail, password):
         except:
             logging.info("Login Successful")
             return
-
-def downloadRecording(driver, conversationID):
-    WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Activities']"))).click()
 
 
 # Reading all values from json file
@@ -246,7 +230,7 @@ def main():
             logging.info("Audio file ended.")
             logging.info("Ending the call.")
             callEnd(driver)
-            #downloadRecording()
+
     driver.quit()
 
 
