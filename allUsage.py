@@ -1,5 +1,6 @@
 import psutil
 import time
+import logging
 
 def bytes_to_mb(bytes):
     return bytes / (1024 * 1024)
@@ -56,24 +57,23 @@ def monitor_performance(duration, process_name="Sanas.AccentConverter.exe"):
     # peak_disk_usage = max(disk_samples) if disk_samples else 0
     # low_disk_usage = min(disk_samples) if disk_samples else 0
 
-    print("\nFinal Summary:")
-    print("CPU Usage:")
-    print(f"    Average: {avg_cpu}%")
-    print(f"    Peak: {peak_cpu}%")
-    print(f"    Low: {low_cpu}%")
-    print()
+    logging.info("\nFinal Summary:")
+    logging.info("CPU Usage:")
+    logging.info(f"    Average: {avg_cpu}%")
+    logging.info(f"    Peak: {peak_cpu}%")
+    logging.info(f"    Low: {low_cpu}%")
 
-    print("Memory Usage:")
-    print(f"    Average: {avg_mem} MB")
-    print(f"    Peak: {peak_mem} MB")
-    print(f"    Low: {low_mem} MB")
-    print()
 
-    print("Network Usage:")
-    print(f"    Average: {avg_net_usage} KB")
-    print(f"    Peak: {peak_net_usage} KB")
-    print(f"    Low: {low_net_usage} KB")
-    print()
+    logging.info("Memory Usage:")
+    logging.info(f"    Average: {avg_mem} MB")
+    logging.info(f"    Peak: {peak_mem} MB")
+    logging.info(f"    Low: {low_mem} MB")
+
+
+    logging.info("Network Usage:")
+    logging.info(f"    Average: {avg_net_usage} KB")
+    logging.info(f"    Peak: {peak_net_usage} KB")
+    logging.info(f"    Low: {low_net_usage} KB")
 
     # print("Disk Usage:")
     # print(f"    Average: {avg_disk_usage} MB")
