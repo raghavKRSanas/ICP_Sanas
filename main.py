@@ -3,7 +3,7 @@ import downloadApp as dapp
 import launchApplication as lapp
 from datetime import datetime
 import logging
-import getConverstionID
+import getConversationID
 
 
 
@@ -49,7 +49,7 @@ def main():
     dailerPy.main()
     if dialerTesting == 'Talkdesk' and download:
         #log_filename = "Talkdesk_automation_log_20240617_175244.log"
-        conversationIDDict = getConverstionID.getConversationID(log_filename)
+        conversationIDDict = getConversationID.getConversationID(log_filename)
         import talkdeskDownloader as td
         td.main(conversationIDDict, downloadDir, downloadDestination)
 
