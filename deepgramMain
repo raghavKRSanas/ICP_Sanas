@@ -7,6 +7,7 @@ import pandas as pd
 import string
 import inflect
 import shutil
+import logging
 
 
 def convert_mp3_to_wav(mp3_file, output_folder):
@@ -17,7 +18,7 @@ def convert_mp3_to_wav(mp3_file, output_folder):
     output_path = os.path.join(output_folder, os.path.basename(wav_file))
     # Export the audio to WAV format
     audio.export(output_path, format="wav")
-    print(f"Conversion successful: {mp3_file} -> {output_path}")
+    logging.info(f"Conversion successful: {mp3_file} -> {output_path}")
 
 
 def convert_mp3_files_in_folder(folder_path, output_folder):
@@ -29,13 +30,13 @@ def convert_mp3_files_in_folder(folder_path, output_folder):
                 mp3_file = os.path.join(root, file)
                 convert_mp3_to_wav(mp3_file, output_folder)
             if file.endswith(".wav"):
-                print("Copying to folder {} since it is already in .wav file format".format(output_folder))
+                logging.info("Copying to folder {} since it is already in .wav file format".format(output_folder))
                 wav_file = os.path.join(root, file)
                 destination = os.path.join(output_folder, file)
                 if os.path.abspath(wav_file) != os.path.abspath(destination):
                     shutil.copy(wav_file, destination)
                 else:
-                    print("There is already a file exsisting with same name for file : {} ".format(wav_file))
+                    logging.info("There is already a file existing with same name for file : {} ".format(wav_file))
 
 
 def convert_to_8000hz(input_folder, output_folder):
@@ -63,7 +64,7 @@ def convert_and_resample(input_file, output_file, target_rate=8000):
         audio = audio.set_frame_rate(target_rate)
     # Export the audio to the output file
     audio.export(output_file, format="wav")
-    print("Exporting file {}".format(output_file))
+    logging.info("Exporting file {}".format(output_file))
 
 
 def transcribe_wav_files(folder_path):
@@ -92,9 +93,9 @@ def transcribe_wav_files(folder_path):
                     output_file = os.path.splitext(audio_file)[0] + ".json"
                     with open(output_file, "w") as output:
                         json.dump(response.to_dict(), output, indent=4)
-                    print(f"Transcription for {audio_file} saved to {output_file}")
+                    logging.info(f"Transcription for {audio_file} saved to {output_file}")
     except Exception as e:
-        print(f"Exception: {e}")
+        logging.info(f"Exception: {e}")
 
 
 def save_transcripts_to_text_files(root_folder):
@@ -104,7 +105,7 @@ def save_transcripts_to_text_files(root_folder):
             if file_name.endswith(".json"):
                 # Path to the JSON file
                 json_file = os.path.join(root, file_name)
-                print(f"Transcript from file: {json_file}")
+                logging.info(f"Transcript from file: {json_file}")
                 # Read and save the transcript from the JSON file to a text file
                 save_transcript(json_file)
 
@@ -118,7 +119,7 @@ def save_transcript(transcription_file):
     # Write transcript to the text file
     with open(text_file_path, "w") as text_file:
         text_file.write(transcript)
-    print(f"Transcript saved to: {text_file_path}")
+    logging.info(f"Transcript saved to: {text_file_path}")
 
 
 def preprocess_sentence(sentence):
@@ -186,11 +187,11 @@ def wer(ref, hyp):
 def compare_files(ref_text, hyp_text):
     # Calculate WER and get detailed information
     wer_score, substituted, inserted, deleted = wer(ref_text, hyp_text)
-    # Print WER and detailed information
-    print("WER:", wer_score)
-    print("Inserted:", inserted)
-    print("Deleted:", deleted)
-    print("Substituted:", substituted)
+    # logging.info WER and detailed information
+    logging.info("WER:", wer_score)
+    logging.info("Inserted:", inserted)
+    logging.info("Deleted:", deleted)
+    logging.info("Substituted:", substituted)
     return wer_score, substituted, inserted, deleted
 
 
@@ -199,7 +200,9 @@ def save_data_to_excel(data, excel_file):
     df = pd.DataFrame(data)
     # Save the DataFrame to the new Excel file
     df.to_excel(excel_file, index=False)
-    print("Data saved to", excel_file)
+    logging.info("Data saved to", excel_file)
+
+
 
 
 def main():
@@ -212,6 +215,12 @@ def main():
     convertedSourceFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\convertedSource'
     synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\extracted_recording"
     convertedSynFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\convertedSyn'
+
+    log_filename = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(synFile.split('\\')[-1])
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        handlers=[logging.FileHandler(log_filename), logging.StreamHandler()])
+    logger = logging.getLogger(__name__)
 
     convert_mp3_files_in_folder(sourceFile, convertedSourceFile)
     convert_mp3_files_in_folder(synFile, convertedSynFile)
@@ -247,4 +256,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
