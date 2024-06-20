@@ -12,4 +12,5 @@ pip install psutil
 
 pip install tqdm
 
+pip install webdriver_manager
 
