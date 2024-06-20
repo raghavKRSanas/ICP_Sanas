@@ -45,4 +45,5 @@ def installApp(url, download_dir):
         logging.info("Installation completed successfully.")
     except subprocess.CalledProcessError as e:
         logging.info(f"Installation failed with error: {e}")
+        logging.info("Sometimes for .msi files silent install is not possible")
 
