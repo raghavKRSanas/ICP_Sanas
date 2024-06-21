@@ -18,7 +18,7 @@ def convert_mp3_to_wav(mp3_file, output_folder):
     output_path = os.path.join(output_folder, os.path.basename(wav_file))
     # Export the audio to WAV format
     audio.export(output_path, format="wav")
-    logging.info(f"Conversion successful: {mp3_file} -> {output_path}")
+    logging.info("Conversion successful: {} -> {}".format(mp3_file,output_path))
 
 
 def convert_mp3_files_in_folder(folder_path, output_folder):
@@ -93,9 +93,9 @@ def transcribe_wav_files(folder_path):
                     output_file = os.path.splitext(audio_file)[0] + ".json"
                     with open(output_file, "w") as output:
                         json.dump(response.to_dict(), output, indent=4)
-                    logging.info(f"Transcription for {audio_file} saved to {output_file}")
+                    logging.info("Transcription for {} saved to {}".format(audio_file,output_file))
     except Exception as e:
-        logging.info(f"Exception: {e}")
+        logging.info("Exception: {}".format(e))
 
 
 def save_transcripts_to_text_files(root_folder):
@@ -105,7 +105,7 @@ def save_transcripts_to_text_files(root_folder):
             if file_name.endswith(".json"):
                 # Path to the JSON file
                 json_file = os.path.join(root, file_name)
-                logging.info(f"Transcript from file: {json_file}")
+                logging.info("Transcript from file:{}".format(json_file))
                 # Read and save the transcript from the JSON file to a text file
                 save_transcript(json_file)
 
@@ -119,7 +119,7 @@ def save_transcript(transcription_file):
     # Write transcript to the text file
     with open(text_file_path, "w") as text_file:
         text_file.write(transcript)
-    logging.info(f"Transcript saved to: {text_file_path}")
+    logging.info("Transcript saved to: {}".format(text_file_path))
 
 
 def preprocess_sentence(sentence):
@@ -188,10 +188,10 @@ def compare_files(ref_text, hyp_text):
     # Calculate WER and get detailed information
     wer_score, substituted, inserted, deleted = wer(ref_text, hyp_text)
     # logging.info WER and detailed information
-    logging.info("WER:", wer_score)
-    logging.info("Inserted:", inserted)
-    logging.info("Deleted:", deleted)
-    logging.info("Substituted:", substituted)
+    logging.info("WER: {}".format(wer_score))
+    logging.info("Inserted:{}".format(inserted))
+    logging.info("Deleted:{}".format(deleted))
+    logging.info("Substituted:{}".format(substituted))
     return wer_score, substituted, inserted, deleted
 
 
@@ -200,39 +200,28 @@ def save_data_to_excel(data, excel_file):
     df = pd.DataFrame(data)
     # Save the DataFrame to the new Excel file
     df.to_excel(excel_file, index=False)
-    logging.info("Data saved to", excel_file)
+    logging.info("Data saved to {}".format(excel_file))
 
 
+def read_sentences(ref_path, hyp_path):
+    # Read reference and hypothesis sentences from files
+    with open(ref_path, 'r', encoding='iso-8859-1') as f:
+        reference_sentence = f.read()
+    with open(hyp_path, 'r', encoding='iso-8859-1') as f:
+        hypothesis_sentence = f.read()
+    return reference_sentence, hypothesis_sentence
 
 
-def main():
-    # sourceFile = "C:\\Users\\RaghavKR\\Desktop\\Testing1\\Male\\Male"
-    # convertedSourceFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing1\\convertedSource'
-    # synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing1\\extracted_recordings_Male\\extracted_recordings"
-    # convertedSynFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing1\\convertedSyn'
+def customize_audioTotext(rawFile, convertedFile):
+    convert_mp3_files_in_folder(rawFile, convertedFile)
+    convert_to_8000hz(convertedFile, convertedFile)
+    transcribe_wav_files(convertedFile)
+    save_transcripts_to_text_files(convertedFile)
 
-    sourceFile = "C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\Female\\Femal_"
-    convertedSourceFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\convertedSource'
-    synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\extracted_recording"
-    convertedSynFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\convertedSyn'
 
-    log_filename = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(synFile.split('\\')[-1])
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        handlers=[logging.FileHandler(log_filename), logging.StreamHandler()])
-    logger = logging.getLogger(__name__)
-
-    convert_mp3_files_in_folder(sourceFile, convertedSourceFile)
-    convert_mp3_files_in_folder(synFile, convertedSynFile)
-    convert_to_8000hz(convertedSourceFile, convertedSourceFile)
-    convert_to_8000hz(convertedSynFile, convertedSynFile)
-    transcribe_wav_files(convertedSynFile)
-    save_transcripts_to_text_files(convertedSynFile)
-    transcribe_wav_files(convertedSourceFile)
-    save_transcripts_to_text_files(convertedSourceFile)
+def generate_difference(convertedSourceFile, convertedSynFile):
     ref_folder = convertedSourceFile
     hyp_folder = convertedSynFile
-    excel_file = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(synFile.split('\\')[-1]) + datetime.now().strftime('_log_Report%Y%m%d_%H%M%S.xlsx')
     ref_files = [file for file in os.listdir(ref_folder) if file.endswith('.txt')]
     hyp_files = [file for file in os.listdir(hyp_folder) if file.endswith('.txt')]
     assert len(ref_files) == len(hyp_files), "Number of files in reference and hypothesis folders must be the same."
@@ -240,19 +229,50 @@ def main():
     for ref_file, hyp_file in zip(ref_files, hyp_files):
         ref_path = os.path.join(ref_folder, ref_file)
         hyp_path = os.path.join(hyp_folder, hyp_file)
-        # Read reference and hypothesis sentences from files
-        with open(ref_path, 'r', encoding='iso-8859-1') as f:
-            reference_sentence = f.read()
-        with open(hyp_path, 'r', encoding='iso-8859-1') as f:
-            hypothesis_sentence = f.read()
+        reference_sentence, hypothesis_sentence = read_sentences(ref_path, hyp_path)
         wer_score, substituted, inserted, deleted = compare_files(reference_sentence, hypothesis_sentence)
         data.append({'Reference File': ref_file, 'Hypothesis File': hyp_file, 'WER': wer_score,
                      'Inserted': ' '.join(inserted), 'Deleted': ' '.join(deleted),
                      'Substituted': ', '.join([' '.join(sub) for sub in substituted]),
                      'Reference Text': reference_sentence, 'Hypothesis Text': hypothesis_sentence})
-    # Save data to Excel
+    print(data)
+    return data
+
+
+
+def main(sourceFile, convertedSourceFile, synFile, convertedSynFile):
+    # sourceFile = "C:\\Users\\RaghavKR\\Desktop\\Testing1\\Male\\Male"
+    # convertedSourceFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing1\\convertedSource'
+    # synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing1\\extracted_recordings_Male\\extracted_recordings"
+    # convertedSynFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing1\\convertedSyn'
+
+    # sourceFile = "C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\Female\\Femal_"
+    # convertedSourceFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\convertedSource'
+    # synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\extracted_recording"
+    # convertedSynFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\convertedSyn'
+
+    customize_audioTotext(sourceFile, convertedSourceFile)
+    customize_audioTotext(synFile, convertedSynFile)
+    excel_file = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(
+         synFile.split('\\')[-1]) + datetime.now().strftime('_log_Report%Y%m%d_%H%M%S.xlsx')
+    data = generate_difference(convertedSourceFile, convertedSynFile)
     save_data_to_excel(data, excel_file)
 
 
 if __name__ == "__main__":
-    main()
+
+    #Input Data
+    sourceFile = "C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Female\\Female"
+    convertedSourceFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Female\\convertedSource'
+    synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Female\\extracted_recordings\\extracted_recordings"
+    convertedSynFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Female\\convertedSyn'
+
+    #Logging File creation
+    log_filename = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(synFile.split('\\')[-1])
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        handlers=[logging.FileHandler(log_filename), logging.StreamHandler()])
+    logger = logging.getLogger(__name__)
+
+    main(sourceFile, convertedSourceFile, synFile, convertedSynFile)
+
