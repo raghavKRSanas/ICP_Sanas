@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Comparison Report with Bootstrap and Chart.js</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Comparison Report with Comments</h1>
+        <div class="row">
+            <div class="col-md-12">
+                <h2 class="mb-3">Bar Graph Comparison</h2>
+                <canvas id="comparisonChart" width="800" height="400"></canvas>
+                <script>
+                    var ctx = document.getElementById('comparisonChart').getContext('2d');
+                    var data1 = {{ data_str|safe }};
+                    var data2 = {{ data2_str|safe }};
+                    var labels = {{ labels_str|safe }};
+                    var chart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Data 1',
+                                backgroundColor: 'skyblue',
+                                data: data1
+                            }, {
+                                label: 'Data 2',
+                                backgroundColor: 'orange',
+                                data: data2
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                yAxes: [{
+                                    ticks: {
+                                        beginAtZero: true
+                                    }
+                                }]
+                            }
+                        }
+                    });
+                </script>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <h2 class="mb-3">Comments Table</h2>
+                <table class="table table-bordered">
+                    <thead class="thead-light">
+                        <tr>
+                            <th scope="col">Headset</th>
+                            <th scope="col">Comments</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key in comments.keys() %}
+                            <tr>
+                                <td>{{ key }}</td>
+                                <td>{{ comments[key] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
