@@ -14,3 +14,12 @@ pip install tqdm
 
 pip install webdriver_manager
 
+pip install pydub
+
+pip install pandas
+
+pip install inflect
+
+pip install matplotlib
+
+pip install Jinja2
