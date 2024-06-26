@@ -47,7 +47,6 @@ def getData(filePath):
 
 
 def extract_version(filename, start_marker, end_marker):
-    """Helper function to extract a version string between two markers in a filename."""
     start_idx = filename.find(start_marker) + len(start_marker)
     end_idx = filename.find(end_marker, start_idx)
     return filename[start_idx:end_idx]
@@ -55,14 +54,14 @@ def extract_version(filename, start_marker, end_marker):
 
 def main():
     file_path_mod1 = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\410\\Report_Source__Female__SynFile__extracted_recording_log_Report20240619_141258.xlsx'
-    file_path_mod2 = 'C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Female\\Report_Source__Female_SynFile__extracted_recordings_log_Report20240621_151401.xlsx'
+    file_path_mod2 = 'C:\\Users\RaghavKR\\Desktop\\option5,6,7\\option5,6,7\\option6\\Report_Source__Female_SynFile__extracted_recordingsFemale_option6_log_Report20240625_160603.xlsx'
 
     data_1, model_1, appVersion_1 = getData(file_path_mod1)
     data_2, model_2, appVersion_2 = getData(file_path_mod2)
 
     recording_names = data_1.keys()
     result = {}
-
+    betterModel = {model_1: 0, model_2: 0}
     for name in recording_names:
         base_name = name.split('_appVersion')[0] if '_appVersion' in name else name
 
@@ -72,20 +71,24 @@ def main():
             if wer_1 > wer_2:
                 diff = wer_1 - wer_2
                 comment = f"WER is more in model: {model_1} app version {appVersion_1} by {diff:.2f} when compared to model: {model_2} appversion: {appVersion_2}"
+                betterModel[model_2] += 1
                 if round(diff, 2) == 0.0 or round(diff, 2) == 0.00:
-                    comment = f"WER is same in model: {model_1} app version {appVersion_1} by {diff:.2f} when compared to model: {model_2} appversion: {appVersion_2}"
+                    comment = f"WER is same in model: {model_1} app version {appVersion_1} as model: {model_2} appversion: {appVersion_2}"
             elif wer_1 < wer_2:
                 diff = wer_2 - wer_1
                 comment = f"WER is more in model: {model_2} app version {appVersion_2} by {diff:.2f} when compared to model: {model_1} appversion: {appVersion_1}"
+                betterModel[model_1] += 1
                 if round(diff, 2) == 0.0 or round(diff, 2) == 0.00:
-                    comment = f"WER is same in model: {model_1} app version {appVersion_1} by {diff:.2f} when compared to model: {model_2} appversion: {appVersion_2}"
+                    comment = f"WER is same in model: {model_1} app version {appVersion_1} as model: {model_2} appversion: {appVersion_2}"
             else:
                 comment = "WER is the same in both models"
 
             result[base_name] = comment
         else:
             logging.error(f"Recording {base_name} is not found in both datasets")
-    rg.main(data_1, data_2, result, model_1, model_2)
+    print(result)
+    bestModel = max(betterModel, key=betterModel.get)
+    rg.main(data_1, data_2, result, model_1, model_2, bestModel)
 
 
 if __name__ == "__main__":
