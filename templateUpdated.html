@@ -20,16 +20,18 @@
                     var data1 = {{ data_str|safe }};
                     var data2 = {{ data2_str|safe }};
                     var labels = {{ labels_str|safe }};
+                    var model1 = "{{ model1 }}";
+                    var model2 = "{{ model2 }}";
                     var chart = new Chart(ctx, {
                         type: 'bar',
                         data: {
                             labels: labels,
                             datasets: [{
-                                label: 'Data 1',
+                                label: model1,
                                 backgroundColor: 'skyblue',
                                 data: data1
                             }, {
-                                label: 'Data 2',
+                                label: model2,
                                 backgroundColor: 'orange',
                                 data: data2
                             }]
@@ -67,6 +69,9 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="bestModel">
+            <h4 class="mb-3">Best model when comparing with {{model1}} with {{model2}} is {{bestModel}}</h4>
         </div>
     </div>
 </body>
