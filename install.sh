@@ -23,3 +23,5 @@ pip install inflect
 pip install matplotlib
 
 pip install Jinja2
+
+pip install winapps
