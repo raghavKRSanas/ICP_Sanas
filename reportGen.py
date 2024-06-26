@@ -1,92 +1,75 @@
-import logging
-import pandas as pd
-import reportGen as rg
+import matplotlib.pyplot as plt
+import numpy as np
+from jinja2 import Template
 
-# Setup logging configuration
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-
-
-def getData(filePath):
-    df = pd.read_excel(filePath)
-    # Convert the DataFrame to a dictionary
-    data_dict = df.to_dict(orient='list')
-
-    # Keys to delete
-    keys_to_delete = ['Inserted', 'Deleted', 'Substituted', 'Reference Text', 'Hypothesis Text', 'Reference File']
-
-    # Delete the keys from the dictionary
-    for key in keys_to_delete:
-        if key in data_dict:
-            del data_dict[key]
-
-    # Create a new dictionary with required data
-    converted_dict = {data_dict['Hypothesis File'][i]: data_dict['WER'][i] for i in
-                      range(len(data_dict['Hypothesis File']))}
-
-    # Extract model and app version from the file names
-    first_key = next(iter(converted_dict))
-    model_version = '1.24.0410.1'
-    app_version = '2.24.0513.4'
-    if 'modelVersion' in first_key:
-        model_version = extract_version(first_key, '_modelVersion_', '.all')
-    if '_appVersion_' in first_key:
-        app_version = extract_version(first_key, '_appVersion_', '_modelVersion_')
-
-    # Update keys in the dictionary
-    updated_dict = {}
-    for key, value in converted_dict.items():
-        if '_appVersion' in key:
-            new_key = key.split('_appVersion')[0] if '_appVersion' in key else key
-        elif '.txt' in key:
-            new_key = key.split('.txt')[0] if '.txt' in key else key
-        else:
-            new_key = key
-        updated_dict[new_key] = value
-    print(updated_dict)
-    return updated_dict, model_version, app_version
+# Example data and comments
+# data1 = {'Creative_hs220_Female_IN-Hindi_1716798660408': 0.1767810026385224, 'EnterGo_analysis_410_8x8_Female_IN-Hindi_1716545609879': 0.1965811965811966, 'FRONTECH_HEADSET_H_3447_Female_IN-Hindi_1716797580787': 0.2792553191489361, 'InplayHN620_analysis_410_8x8_Female_IN-Hindi_1716550570705': 0.1280653950953679, 'JabraBiz1100_analysis_410_8x8_Female_IN-Hindi_1716544040775': 0.1575, 'Jabra_Biz_2300_410_8x8__Female_IN-Hindi_1716812638660': 0.08353808353808354, 'Lenovo_USB_analysis_410_8X8_Female_IN-Hindi_1716798411115': 0.1393034825870647, 'Logitech_H570e_analysis_410_8X8_Female_IN-Hindi_1716798705932': 0.1802884615384615, 'Mairdi_analysis_410_8x8_Female_IN-Hindi_1716550038582': 0.1533333333333333}
+# data2 = {'Creative_hs220_Female_IN-Hindi_1716798660408': 0.1424802110817942, 'EnterGo_analysis_410_8x8_Female_IN-Hindi_1716545609879': 0.207977207977208, 'FRONTECH_HEADSET_H_3447_Female_IN-Hindi_1716797580787': 0.25, 'InplayHN620_analysis_410_8x8_Female_IN-Hindi_1716550570705': 0.1362397820163488, 'JabraBiz1100_analysis_410_8x8_Female_IN-Hindi_1716544040775': 0.145, 'Jabra_Biz_2300_410_8x8__Female_IN-Hindi_1716812638660': 0.07862407862407862, 'Lenovo_USB_analysis_410_8X8_Female_IN-Hindi_1716798411115': 0.1318407960199005, 'Logitech_H570e_analysis_410_8X8_Female_IN-Hindi_1716798705932': 0.1514423076923077, 'Mairdi_analysis_410_8x8_Female_IN-Hindi_1716550038582': 0.12}
+# comments = {'Creative_hs220_Female_IN-Hindi_1716798660408': 'WER is more in model: 1.24.0619.2 app version 0.24.0619.6 by 0.03 when compared to model: 1.24.0410.1 appversion: 2.24.0513.4', 'EnterGo_analysis_410_8x8_Female_IN-Hindi_1716545609879': 'WER is more in model: 1.24.0410.1 app version 2.24.0513.4 by 0.01 when compared to model: 1.24.0619.2 appversion: 0.24.0619.6', 'FRONTECH_HEADSET_H_3447_Female_IN-Hindi_1716797580787': 'WER is more in model: 1.24.0619.2 app version 0.24.0619.6 by 0.03 when compared to model: 1.24.0410.1 appversion: 2.24.0513.4', 'InplayHN620_analysis_410_8x8_Female_IN-Hindi_1716550570705': 'WER is more in model: 1.24.0410.1 app version 2.24.0513.4 by 0.01 when compared to model: 1.24.0619.2 appversion: 0.24.0619.6', 'JabraBiz1100_analysis_410_8x8_Female_IN-Hindi_1716544040775': 'WER is more in model: 1.24.0619.2 app version 0.24.0619.6 by 0.01 when compared to model: 1.24.0410.1 appversion: 2.24.0513.4', 'Jabra_Biz_2300_410_8x8__Female_IN-Hindi_1716812638660': 'WER is more in model: 1.24.0619.2 app version 0.24.0619.6 by 0.00 when compared to model: 1.24.0410.1 appversion: 2.24.0513.4', 'Lenovo_USB_analysis_410_8X8_Female_IN-Hindi_1716798411115': 'WER is more in model: 1.24.0619.2 app version 0.24.0619.6 by 0.01 when compared to model: 1.24.0410.1 appversion: 2.24.0513.4', 'Logitech_H570e_analysis_410_8X8_Female_IN-Hindi_1716798705932': 'WER is more in model: 1.24.0619.2 app version 0.24.0619.6 by 0.03 when compared to model: 1.24.0410.1 appversion: 2.24.0513.4', 'Mairdi_analysis_410_8x8_Female_IN-Hindi_1716550038582': 'WER is more in model: 1.24.0619.2 app version 0.24.0619.6 by 0.03 when compared to model: 1.24.0410.1 appversion: 2.24.0513.4'}
 
 
-def extract_version(filename, start_marker, end_marker):
-    start_idx = filename.find(start_marker) + len(start_marker)
-    end_idx = filename.find(end_marker, start_idx)
-    return filename[start_idx:end_idx]
+# Function to generate an HTML report with Bootstrap, Chart.js, and comments
+def generate_html_report_with_comments(data1, data2, comments, model1, model2, bestModel):
+    keys = list(data1.keys())
+    values1 = [data1[key] for key in keys]
+    values2 = [data2.get(key, 0) for key in keys]
+
+    # Generate the bar chart
+    ind = np.arange(len(keys))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    rects1 = ax.bar(ind - width/2, values1, width, label=f'{model1}', color='skyblue')
+    rects2 = ax.bar(ind + width/2, values2, width, label=f'{model2}', color='orange')
+
+    ax.set_xlabel('Keys')
+    ax.set_ylabel('Values')
+    ax.set_title(f'Comparison of {model1} and {model2}')
+    ax.set_xticks(ind)
+    ax.set_xticklabels(keys, rotation=45, ha='right')
+    ax.legend()
+
+    # Save the bar chart to a file
+    chart_filename = 'comparison_chart.png'
+    plt.savefig(chart_filename)
+
+    # Prepare data for JavaScript chart (Chart.js)
+    data_str = str(values1)
+    data2_str = str(values2)
+    labels_str = str(keys)
+
+    # Read HTML template
+    with open('templateUpdated.html', 'r') as file:
+        template_str = file.read()
+
+    # Create Jinja2 template object
+    template = Template(template_str)
+
+    # Render HTML using template and data
+    report_html = template.render(
+        chart_filename=chart_filename,
+        data_str=data_str,
+        data2_str=data2_str,
+        labels_str=labels_str,
+        data1=data1,
+        data2=data2,
+        comments=comments,
+        bestModel=bestModel,
+        model2=model2,
+        model1=model1
+    )
+
+    return report_html
 
 
-def main():
-    file_path_mod1 = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Male\\410\\Report_Source__Male_SynFile__Synthesis_log_Report20240620_203304.xlsx'
-    file_path_mod2 = 'C:\\Users\\RaghavKR\\Desktop\\TestingVAD4\\Male\\Report_Source__Male_SynFile__Synthesis_log_Report20240621_125524.xlsx'
 
-    data_1, model_1, appVersion_1 = getData(file_path_mod1)
-    data_2, model_2, appVersion_2 = getData(file_path_mod2)
-
-    recording_names = data_1.keys()
-    result = {}
-
-    for name in recording_names:
-        base_name = name.split('_appVersion')[0] if '_appVersion' in name else name
-
-        if base_name in data_2 and base_name in data_1:
-            wer_1 = float(data_1[base_name])
-            wer_2 = float(data_2[base_name])
-            if wer_1 > wer_2:
-                diff = wer_1 - wer_2
-                comment = f"WER is more in model: {model_1} app version {appVersion_1} by {diff:.2f} when compared to model: {model_2} appversion: {appVersion_2}"
-                if round(diff, 2) == 0.0 or round(diff, 2) == 0.00:
-                    comment = f"WER is same in model: {model_1} app version {appVersion_1} as model: {model_2} appversion: {appVersion_2}"
-            elif wer_1 < wer_2:
-                diff = wer_2 - wer_1
-                comment = f"WER is more in model: {model_2} app version {appVersion_2} by {diff:.2f} when compared to model: {model_1} appversion: {appVersion_1}"
-                if round(diff, 2) == 0.0 or round(diff, 2) == 0.00:
-                    comment = f"WER is same in model: {model_1} app version {appVersion_1} as model: {model_2} appversion: {appVersion_2}"
-            else:
-                comment = "WER is the same in both models"
-
-            result[base_name] = comment
-        else:
-            logging.error(f"Recording {base_name} is not found in both datasets")
-    print(result)
-    rg.main(data_1, data_2, result, model_1, model_2)
+def main(data1, data2, comments, model1, model2, bestModel):
+    # Generate the report with comments
+    report_content = generate_html_report_with_comments(data1, data2, comments, model1, model2, bestModel)
+    # Save the report to a file
+    report_filename = 'comparison_report_with_comments.html'
+    with open(report_filename, 'w') as f:
+        f.write(report_content)
+    print(f"Report generated successfully: {report_filename}")
 
 
-if __name__ == "__main__":
-    main()
