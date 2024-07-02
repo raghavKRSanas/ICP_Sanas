@@ -139,7 +139,7 @@ def main(conversationIDDict, downloadDir, downloadDestination):
                         boundNum -= 1
                         if conversation in conversationIDList:
                             driver.find_element(By.XPATH, "//i[normalize-space()='download']").click()
-                            logging.info("Downloaded file for converstion ID {} for the source {} ".format(conversation,
+                            logging.info("Downloaded file for conversation ID {} for the source {} ".format(conversation,
                                                                                                            conversationIDDict[conversation]))
                             time.sleep(3)
                             appVersion = getAppVersion()
