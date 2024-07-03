@@ -1,17 +1,19 @@
 {
   "_comment1" : "Below are Application related details",
   "appLocation" : "C:\\Program Files\\Sanas.ai\\Sanas Accent Translator\\Sanas.AccentConverter.exe",
-  "directory_path" : "C:\\Users\\RaghavKR\\Downloads\\Recognizer-20240617T072945Z-001\\Recognizer\\Female",
   "appDownloadDir" : "C:\\Users\\RaghavKR\\Downloads\\appdownload",
   "url" : "https://cdn-dev.sanas.ai/releases/v2-desktop-app/SanasAccentTranslator-V2-2.24.0604.27-phl-dev.exe",
 
   "_comment2" : "Below is the Download path  and Destionation path for unzipped recordings",
   "download" : true,
   "downloadDir" : "C:\\Users\\RaghavKR\\Downloads\\recordings",
-  "downloadDestination" : "C:\\Users\\RaghavKR\\Downloads\\extracted_recordings",
+  "downloadDestination" : "C:\\Users\\RaghavKR\\Desktop\\TEST",
 
-  "_comment3" : "Below are the arguments needed according to each Dailer",
-  "dialerTesting" : "Talkdesk",
+  "_comment3": "Below is the source file path ",
+  "directory_path" : "C:\\Users\\RaghavKR\\Downloads\\TEST",
+
+  "_comment4" : "Below are the arguments needed according to each Dailer",
+  "dialerTesting" : "AWS",
   "Talkdesk" :
   {
     "userEmail": "namrata@sanas.ai",
@@ -24,8 +26,9 @@
   },
   "8x8" :
   {
-    "userEmail": "Rajat",
+    "userEmail": "Raghav",
     "password": "Sanas@123",
+    "backupcode" : "Epv1YHtxD5",
     "audioInput": "Microphone (Sanas Virtual Audio)",
     "countryCode": "India (+91)",
     "phoneNumber": "+12098677235",
@@ -36,7 +39,6 @@
   {
     "userEmail": "Raghav",
     "password": "Sanas@123",
-    "audioInput": "Microphone (Sanas Virtual Audio)",
     "phoneNumber": "+12098677235",
     "numberRetryCalls" : 3,
     "newSession" : true
