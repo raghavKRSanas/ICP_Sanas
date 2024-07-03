@@ -19,7 +19,8 @@ def readInputValues(filename):
 
 def permissionAccess():
     preferences = {
-        "profile.default_content_setting_values.media_stream_mic": 1  # 1 to allow, 2 to block
+        "profile.default_content_setting_values.media_stream_mic": 1,  # 1 to allow, 2 to block
+        "profile.default_content_setting_values.notifications": 1,
     }
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--start-maximized")
@@ -44,7 +45,6 @@ def awsLogin(driver,userEmail,password):
             return
         except (NoSuchElementException, TimeoutException):
             logging.info("Due to exceptions not able to Login")
-
 
 
 def callStart(driver,phoneNumber):
@@ -98,7 +98,7 @@ def createNewSession(driver, newSession=True):
 
 
 # Reading all values from json file
-inputData = readInputValues('variable2.json')
+inputData = readInputValues('variable.json')
 directory_path = inputData['directory_path']
 appPath = inputData['appLocation']
 userEmail = inputData['AWS']['userEmail']
@@ -116,12 +116,14 @@ def main():
     chrome_options = permissionAccess()
     driver = webdriver.Chrome(options=chrome_options)
     cm.changeMicrophone(driver)
+    #time.sleep(10000)
     driver.get("https://sanas-connect.my.connect.aws/users#/edit")
 
     #AWS Login
     awsLogin(driver, userEmail, password)
 
     #Opening Dailer Window
+    time.sleep(10)
     shadowObj = driver.find_element(By.CSS_SELECTOR, '[class="lily-icon-logo"]').shadow_root
     obj = shadowObj.find_element(By.CSS_SELECTOR, "a[target='ContactControlPanel']")
     obj.click()
@@ -141,12 +143,13 @@ def main():
     for file in wav_files:
         mode = callStart(driver, phoneNumber)
         if mode == "Connected call":
+            current_url = driver.current_url
+            logging.info("current url = '{}' playing audio file {} ".format(current_url, file))
             logging.info("Audio file started playing")
             vj.play_audio_files_to_vac(file, vac_device_id)
             logging.info(f"audio played in location {file}")
             logging.info("Audio file ended.")
             callEnd(driver)
-
     driver.quit()
 
 def convertTable(table_con):
@@ -181,6 +184,8 @@ def downloadAudio(driver):
     callDetails = convertTable(table_con)
     print("Call details for the downloaded file {} is  {}  ".format(name, callDetails[name]))
     driver.quit()
+
+
 
 
 if __name__ == "__main__":
