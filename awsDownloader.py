@@ -55,11 +55,13 @@ def main(conversationIDDict, downloadDir, downloadDestination):
     time.sleep(10)
     driver.maximize_window()
     for id,fileName in conversationIDDict.items():
+        newName = ''
         downloadURL = 'https://sanas-connect.my.connect.aws/contact-search/api/contact/' + str(id) + '/recording'
         driver.get(downloadURL)
         time.sleep(5)
         appVersion = td.getAppVersion()
         modelVersion = td.getModelVersion()
         newName = conversationIDDict[id] + "_appVersion_" + appVersion + "_modelVersion_" + modelVersion
+        newName = newName.split("\\")[-1]
         us.rename_and_move_latest_file(downloadDir, downloadDestination, newName, '.mp3')
         logging.info("Downloaded synth file for source file :{} with ID {} stored in {} with name {} ".format(fileName, id, downloadDestination, newName))
