@@ -125,8 +125,8 @@ def main(conversationIDDict, downloadDir, downloadDestination):
         boundNum = 2*len(conversationIDList)
         while conversationIDList:
             for i in range(10):
-                success = False
-                while not success:
+                retry = 3
+                while retry > 0:
                     xpath = '/html[1]/body[1]/div[1]/div[1]/div[1]/div[1]/div[4]/table[1]/tbody[1]/tr[' + str(
                         i + 1) + ']/td[2]/div[1]/p[1]'
                     elements = driver.find_element(By.XPATH, xpath)
@@ -134,9 +134,10 @@ def main(conversationIDDict, downloadDir, downloadDestination):
                     time.sleep(5)
                     try:
                         conversation = driver.find_element(By.XPATH,
-                                                           "/html/body/div/div/div[2]/div/div[3]/div/div/div[3]/div/div/div[1]/table/tbody/tr[8]/td/div/div[1]/div/div/div/p").text
-                        success = True
+                                                          "/html/body/div/div/div[2]/div/div[3]/div/div/div[3]/div/div[1]/table/tbody/tr[8]/td/div/div[1]/div/div/div/p").text
+
                         boundNum -= 1
+                        retry = 0
                         if conversation in conversationIDList:
                             driver.find_element(By.XPATH, "//i[normalize-space()='download']").click()
                             logging.info("Downloaded file for conversation ID {} for the source {} ".format(conversation,
@@ -149,12 +150,12 @@ def main(conversationIDDict, downloadDir, downloadDestination):
                             conversationIDList.remove(conversation)
                     except NoSuchElementException:
                         logging.info("conversation ID was not found")
+                        retry -= 1
                     try:
                         driver.find_element(By.XPATH, "//i[normalize-space()='close']").click()
                     except:
                         driver.find_element(By.XPATH, "//i[normalize-space()='close']").click()
                         logging.info("Close is not found ")
-
                     finally:
                         if boundNum == 0:
                             for ele in conversationIDList:
