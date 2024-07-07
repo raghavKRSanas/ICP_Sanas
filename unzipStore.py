@@ -1,13 +1,15 @@
 import os
+import time
 import zipfile
 import shutil
 import logging
-import glob
+
 
 def unzip_latest_folder(source_dir, destination_dir, new_wav_name):
     zip_files = [file for file in os.listdir(source_dir) if file.endswith('.zip')]
     if not zip_files:
-        logging.info("Retrying to find the zip folder.")
+        logging.info("Retrying to find the zip folder after 5 seconds")
+        time.sleep(5)
         zip_files = [file for file in os.listdir(source_dir) if file.endswith('.zip')]
         if not zip_files:
             logging.error("zip folder not found")
@@ -32,15 +34,12 @@ def unzip_latest_folder(source_dir, destination_dir, new_wav_name):
         logging.error("No .mp3 files found in the destination directory.")
 
 def rename_and_move_latest_file(source_dir, destination_dir, new_wav_name, fileExt):
-    files = glob.glob(os.path.join(source_dir, '*'))
-    files.sort(key=os.path.getmtime, reverse=True)
-    if files:
-        latest_file = files[0]
-        new_path = os.path.join(destination_dir, new_wav_name + fileExt)
-        shutil.move(latest_file, new_path)
-        print(f"Latest file '{latest_file}' renamed and moved to '{new_path}'")
-    else:
-        print("No files found in the source directory.")
+    os.makedirs(destination_dir, exist_ok=True)
+    files = [os.path.join(source_dir, f) for f in os.listdir(source_dir) if os.path.isfile(os.path.join(source_dir, f))]
+    latest_file = max(files, key=os.path.getmtime)
+    destination_path = os.path.join(destination_dir, new_wav_name + fileExt)
+    shutil.copy(latest_file, destination_path)
+
 
 
 
