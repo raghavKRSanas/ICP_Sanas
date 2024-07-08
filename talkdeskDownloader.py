@@ -139,6 +139,7 @@ def main(conversationIDDict, downloadDir, downloadDestination):
                         boundNum -= 1
                         retry = 0
                         if conversation in conversationIDList:
+                            allFiles = os.listdir(downloadDir)
                             driver.find_element(By.XPATH, "//i[normalize-space()='download']").click()
                             logging.info("Downloaded file for conversation ID {} for the source {} ".format(conversation,
                                                                                                            conversationIDDict[conversation]))
@@ -146,7 +147,8 @@ def main(conversationIDDict, downloadDir, downloadDestination):
                             appVersion = getAppVersion()
                             modelVersion = getModelVersion()
                             newName = conversationIDDict[conversation] + "_appVersion_" + appVersion + "_modelVersion_" + modelVersion
-                            us.unzip_latest_folder(downloadDir, downloadDestination, newName)
+                            time.sleep(5)
+                            us.unzip_latest_folder(downloadDir, downloadDestination, newName, allFiles)
                             conversationIDList.remove(conversation)
                     except NoSuchElementException:
                         logging.info("conversation ID was not found")
