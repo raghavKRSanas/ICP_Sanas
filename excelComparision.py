@@ -25,8 +25,8 @@ def getData(filePath):
 
     # Extract model and app version from the file names
     first_key = next(iter(converted_dict))
-    model_version = '1.24.0410.1'
-    app_version = '2.24.0513.4'
+    model_version = 'Unknown'
+    app_version = 'Unknown'
     if 'modelVersion' in first_key:
         model_version = extract_version(first_key, '_modelVersion_', '.all')
     if '_appVersion_' in first_key:
@@ -52,9 +52,9 @@ def extract_version(filename, start_marker, end_marker):
     return filename[start_idx:end_idx]
 
 
-def main():
-    file_path_mod1 = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\410\\Report_Source__Female__SynFile__extracted_recording_log_Report20240619_141258.xlsx'
-    file_path_mod2 = 'C:\\Users\RaghavKR\\Desktop\\option5,6,7\\option5,6,7\\option6\\Report_Source__Female_SynFile__extracted_recordingsFemale_option6_log_Report20240625_160603.xlsx'
+def main(file_path_mod1, file_path_mod2):
+    # file_path_mod1 = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\410\\Report_Source__Female__SynFile__extracted_recording_log_Report20240619_141258.xlsx'
+    # file_path_mod2 = 'C:\\Users\\RaghavKR\\Desktop\\option5,6,7\\option5,6,7\\option6\\Report_Source__Female_SynFile__extracted_recordingsFemale_option6_log_Report20240625_160603.xlsx'
 
     data_1, model_1, appVersion_1 = getData(file_path_mod1)
     data_2, model_2, appVersion_2 = getData(file_path_mod2)
@@ -91,5 +91,6 @@ def main():
     rg.main(data_1, data_2, result, model_1, model_2, bestModel)
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+
