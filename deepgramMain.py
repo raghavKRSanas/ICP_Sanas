@@ -1,6 +1,6 @@
 import os
 from pydub import AudioSegment
-from deepgram import DeepgramClient, PrerecordedOptions, FileSource
+from deepgram import Deepgram
 import json
 from datetime import datetime
 import pandas as pd
@@ -8,7 +8,10 @@ import string
 import inflect
 import shutil
 import logging
+import asyncio
 
+
+DEEPGRAM_API_KEY = 'e6a85dbec9ab2cb5540e9b0e33106743c64a46fa'
 
 def convert_mp3_to_wav(mp3_file, output_folder):
     # Load the MP3 file
@@ -18,40 +21,36 @@ def convert_mp3_to_wav(mp3_file, output_folder):
     output_path = os.path.join(output_folder, os.path.basename(wav_file))
     # Export the audio to WAV format
     audio.export(output_path, format="wav")
-    logging.info("Conversion successful: {} -> {}".format(mp3_file,output_path))
+    logging.info("Conversion successful: {} -> {}".format(mp3_file, output_path))
 
 
 def convert_mp3_files_in_folder(folder_path, output_folder):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    for root, dirs, files in os.walk(folder_path):
-        for file in files:
-            if file.endswith(".mp3"):
-                mp3_file = os.path.join(root, file)
-                convert_mp3_to_wav(mp3_file, output_folder)
-            if file.endswith(".wav"):
-                logging.info("Copying to folder {} since it is already in .wav file format".format(output_folder))
-                wav_file = os.path.join(root, file)
-                destination = os.path.join(output_folder, file)
-                if os.path.abspath(wav_file) != os.path.abspath(destination):
-                    shutil.copy(wav_file, destination)
-                else:
-                    logging.info("There is already a file existing with same name for file : {} ".format(wav_file))
-
+    # Search for MP3 and WAV files in the specified folder only
+    for file_name in os.listdir(folder_path):
+        if file_name.endswith(".mp3"):
+            mp3_file = os.path.join(folder_path, file_name)
+            convert_mp3_to_wav(mp3_file, output_folder)
+        if file_name.endswith(".wav"):
+            logging.info("Copying to folder {} since it is already in .wav file format".format(output_folder))
+            wav_file = os.path.join(folder_path, file_name)
+            destination = os.path.join(output_folder, file_name)
+            if os.path.abspath(wav_file) != os.path.abspath(destination):
+                shutil.copy(wav_file, destination)
+            else:
+                logging.info("There is already a file existing with same name for file : {} ".format(wav_file))
 
 def convert_to_8000hz(input_folder, output_folder):
     # Create the output folder if it doesn't exist
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    # Recursively search for WAV files in the input folder and its subfolders
-    for root, dirs, files in os.walk(input_folder):
-        for file in files:
-            if file.lower().endswith(".wav"):
-                wav_file = os.path.join(root, file)
-                output_file = os.path.join(output_folder, file)
-                convert_and_resample(wav_file, output_file)
-
-
+    # Search for WAV files in the specified folder only
+    for file_name in os.listdir(input_folder):
+        if file_name.lower().endswith(".wav"):
+            wav_file = os.path.join(input_folder, file_name)
+            output_file = os.path.join(output_folder, file_name)
+            convert_and_resample(wav_file, output_file)
 def convert_and_resample(input_file, output_file, target_rate=8000):
     # Load the audio file
     audio = AudioSegment.from_wav(input_file)
@@ -67,47 +66,46 @@ def convert_and_resample(input_file, output_file, target_rate=8000):
     logging.info("Exporting file {}".format(output_file))
 
 
-def transcribe_wav_files(folder_path):
+def save_transcripts_to_text_files(root_folder):
+    # Search for JSON files in the specified folder only
+    for file_name in os.listdir(root_folder):
+        if file_name.endswith(".json"):
+            # Path to the JSON file
+            json_file = os.path.join(root_folder, file_name)
+            logging.info("Transcript from file:{}".format(json_file))
+            # Read and save the transcript from the JSON file to a text file
+            save_transcript(json_file)
+
+
+async def transcribe_wav_files(folder_path):
     try:
         # Create a Deepgram client using the API key
-        deepgram = DeepgramClient("e6a85dbec9ab2cb5540e9b0e33106743c64a46fa")
-        # Iterate over all files and folders in the given folder path
-        for root, dirs, files in os.walk(folder_path):
-            for file_name in files:
-                if file_name.endswith(".wav"):
-                    # Path to the WAV file
-                    audio_file = os.path.join(root, file_name)
-                    with open(audio_file, "rb") as file:
-                        buffer_data = file.read()
-                    payload: FileSource = {
-                        "buffer": buffer_data,
-                    }
-                    # Configure Deepgram options for audio analysis
-                    options = PrerecordedOptions(
-                        model="nova-2",
-                        smart_format=False,
-                    )
-                    # Call the transcribe_file method with the text payload and options
-                    response = deepgram.listen.prerecorded.v("1").transcribe_file(payload, options)
-                    # Save the transcription results to a JSON file in the same folder
-                    output_file = os.path.splitext(audio_file)[0] + ".json"
-                    with open(output_file, "w") as output:
-                        json.dump(response.to_dict(), output, indent=4)
-                    logging.info("Transcription for {} saved to {}".format(audio_file,output_file))
+        deepgram = Deepgram(DEEPGRAM_API_KEY)
+        # Search for WAV files in the specified folder only
+        for file_name in os.listdir(folder_path):
+            if file_name.endswith(".wav"):
+                # Path to the WAV file
+                audio_file = os.path.join(folder_path, file_name)
+                with open(audio_file, "rb") as file:
+                    buffer_data = file.read()
+                source = {
+                    'buffer': buffer_data,
+                    'mimetype': 'audio/wav'
+                }
+                # Configure Deepgram options for audio analysis
+                options = {
+                    'model': 'nova-2',
+                    'punctuate': True
+                }
+                # Send the audio to Deepgram for transcription
+                response = await deepgram.transcription.prerecorded(source, options)
+                # Save the transcription results to a JSON file in the same folder
+                output_file = os.path.splitext(audio_file)[0] + ".json"
+                with open(output_file, "w") as output:
+                    json.dump(response, output, indent=4)
+                logging.info("Transcription for {} saved to {}".format(audio_file, output_file))
     except Exception as e:
         logging.info("Exception: {}".format(e))
-
-
-def save_transcripts_to_text_files(root_folder):
-    # Traverse the directory structure recursively
-    for root, dirs, files in os.walk(root_folder):
-        for file_name in files:
-            if file_name.endswith(".json"):
-                # Path to the JSON file
-                json_file = os.path.join(root, file_name)
-                logging.info("Transcript from file:{}".format(json_file))
-                # Read and save the transcript from the JSON file to a text file
-                save_transcript(json_file)
 
 
 def save_transcript(transcription_file):
@@ -121,7 +119,6 @@ def save_transcript(transcription_file):
         text_file.write(transcript)
     logging.info("Transcript saved to: {}".format(text_file_path))
 
-
 def preprocess_sentence(sentence):
     # Convert the sentence to lowercase
     sentence = sentence.lower()
@@ -134,7 +131,6 @@ def preprocess_sentence(sentence):
         if word.isdigit():
             words[i] = p.number_to_words(word)
     return ' '.join(words)
-
 
 def wer(ref, hyp):
     # Preprocess reference and hypothesis sentences
@@ -183,7 +179,6 @@ def wer(ref, hyp):
                 j -= 1
     return wer, substituted, inserted, deleted
 
-
 def compare_files(ref_text, hyp_text):
     # Calculate WER and get detailed information
     wer_score, substituted, inserted, deleted = wer(ref_text, hyp_text)
@@ -194,14 +189,12 @@ def compare_files(ref_text, hyp_text):
     logging.info("Substituted:{}".format(substituted))
     return wer_score, substituted, inserted, deleted
 
-
 def save_data_to_excel(data, excel_file):
     # Create a DataFrame from the data
     df = pd.DataFrame(data)
     # Save the DataFrame to the new Excel file
     df.to_excel(excel_file, index=False)
     logging.info("Data saved to {}".format(excel_file))
-
 
 def read_sentences(ref_path, hyp_path):
     # Read reference and hypothesis sentences from files
@@ -215,15 +208,26 @@ def read_sentences(ref_path, hyp_path):
 def customize_audioTotext(rawFile, convertedFile):
     convert_mp3_files_in_folder(rawFile, convertedFile)
     convert_to_8000hz(convertedFile, convertedFile)
-    transcribe_wav_files(convertedFile)
+    asyncio.run(transcribe_wav_files(convertedFile))
     save_transcripts_to_text_files(convertedFile)
 
 
 def generate_difference(convertedSourceFile, convertedSynFile):
-    ref_folder = convertedSourceFile
     hyp_folder = convertedSynFile
-    ref_files = [file for file in os.listdir(ref_folder) if file.endswith('.txt')]
     hyp_files = [file for file in os.listdir(hyp_folder) if file.endswith('.txt')]
+    ref_folder = convertedSourceFile
+    if not convertedSourceFile:
+        if 'female' in hyp_files[0].lower():
+            ref_folder = "All source\\Female\\convertedSource"
+            logging.info("Fetching Female converted files")
+        elif 'male' in hyp_files[0].lower():
+            ref_folder = "All source\\Male\\convertedSource"
+            logging.info("Fetching Male converted files")
+        else:
+            logging.error("Converted source folder is not found and even default source folder is also missing")
+    ref_files = [file for file in os.listdir(ref_folder) if file.endswith('.txt')]
+    print("Number of files in hyp = {} in path {}".format(len(hyp_files), hyp_files))
+    print("Number of files in ref = {} in path {}".format(len(ref_files), ref_files))
     assert len(ref_files) == len(hyp_files), "Number of files in reference and hypothesis folders must be the same."
     data = []
     for ref_file, hyp_file in zip(ref_files, hyp_files):
@@ -238,36 +242,31 @@ def generate_difference(convertedSourceFile, convertedSynFile):
     print(data)
     return data
 
-
-
-def main(sourceFile, convertedSourceFile, synFile, convertedSynFile):
-    # sourceFile = "C:\\Users\\RaghavKR\\Desktop\\Testing1\\Male\\Male"
-    # convertedSourceFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing1\\convertedSource'
-    # synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing1\\extracted_recordings_Male\\extracted_recordings"
-    # convertedSynFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing1\\convertedSyn'
-
-    # sourceFile = "C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\Female\\Femal_"
-    # convertedSourceFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\convertedSource'
-    # synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\extracted_recording"
-    # convertedSynFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\convertedSyn'
-
-    customize_audioTotext(sourceFile, convertedSourceFile)
+def main(sourceFile, convertedSourceFile, synFile, convertedSynFile, ):
+    if not convertedSynFile:
+        convertedSynFile = synFile + '\\convertedSynFile'
+    if sourceFile:
+        if not convertedSourceFile:
+            convertedSourceFile = sourceFile + '\\convertedSource'
+        customize_audioTotext(sourceFile, convertedSourceFile)
+    else:
+        if not os.path.isdir("All source"):
+            logging.error("Source directory is not mentioned and Default source directory is also missing")
     customize_audioTotext(synFile, convertedSynFile)
     excel_file = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(
-         synFile.split('\\')[-1]) + datetime.now().strftime('_log_Report%Y%m%d_%H%M%S.xlsx')
+        synFile.split('\\')[-1]) + datetime.now().strftime('_log_Report%Y%m%d_%H%M%S.xlsx')
     data = generate_difference(convertedSourceFile, convertedSynFile)
     save_data_to_excel(data, excel_file)
-
 
 if __name__ == "__main__":
 
     #Input Data
-    sourceFile = "C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Female\\Female"
-    convertedSourceFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Female\\convertedSource'
-    synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Female\\extracted_recordings\\extracted_recordings"
-    convertedSynFile = 'C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Female\\convertedSyn'
+    sourceFile = ""
+    convertedSourceFile = ''
+    synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Male\\extracted_recordings\\extracted_recordings"
+    convertedSynFile = ''
 
-    #Logging File creation
+    # Logging File creation
     log_filename = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(synFile.split('\\')[-1])
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -275,4 +274,3 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
     main(sourceFile, convertedSourceFile, synFile, convertedSynFile)
-
