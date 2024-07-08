@@ -9,6 +9,7 @@ import inflect
 import shutil
 import logging
 import asyncio
+import excelComparision as ec
 
 
 DEEPGRAM_API_KEY = 'e6a85dbec9ab2cb5540e9b0e33106743c64a46fa'
@@ -213,6 +214,7 @@ def customize_audioTotext(rawFile, convertedFile):
 
 
 def generate_difference(convertedSourceFile, convertedSynFile):
+    gender = ''
     hyp_folder = convertedSynFile
     hyp_files = [file for file in os.listdir(hyp_folder) if file.endswith('.txt')]
     ref_folder = convertedSourceFile
@@ -220,9 +222,11 @@ def generate_difference(convertedSourceFile, convertedSynFile):
         if 'female' in hyp_files[0].lower():
             ref_folder = "All source\\Female\\convertedSource"
             logging.info("Fetching Female converted files")
+            gender = 'Female'
         elif 'male' in hyp_files[0].lower():
             ref_folder = "All source\\Male\\convertedSource"
             logging.info("Fetching Male converted files")
+            gender = 'Male'
         else:
             logging.error("Converted source folder is not found and even default source folder is also missing")
     ref_files = [file for file in os.listdir(ref_folder) if file.endswith('.txt')]
@@ -239,8 +243,7 @@ def generate_difference(convertedSourceFile, convertedSynFile):
                      'Inserted': ' '.join(inserted), 'Deleted': ' '.join(deleted),
                      'Substituted': ', '.join([' '.join(sub) for sub in substituted]),
                      'Reference Text': reference_sentence, 'Hypothesis Text': hypothesis_sentence})
-    print(data)
-    return data
+    return data, gender
 
 def main(sourceFile, convertedSourceFile, synFile, convertedSynFile, ):
     if not convertedSynFile:
@@ -255,8 +258,9 @@ def main(sourceFile, convertedSourceFile, synFile, convertedSynFile, ):
     customize_audioTotext(synFile, convertedSynFile)
     excel_file = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(
         synFile.split('\\')[-1]) + datetime.now().strftime('_log_Report%Y%m%d_%H%M%S.xlsx')
-    data = generate_difference(convertedSourceFile, convertedSynFile)
+    data, gender = generate_difference(convertedSourceFile, convertedSynFile)
     save_data_to_excel(data, excel_file)
+    return excel_file, gender
 
 if __name__ == "__main__":
 
@@ -265,6 +269,7 @@ if __name__ == "__main__":
     convertedSourceFile = ''
     synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Male\\extracted_recordings\\extracted_recordings"
     convertedSynFile = ''
+    compare_model = '410'
 
     # Logging File creation
     log_filename = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(synFile.split('\\')[-1])
@@ -273,4 +278,7 @@ if __name__ == "__main__":
                         handlers=[logging.FileHandler(log_filename), logging.StreamHandler()])
     logger = logging.getLogger(__name__)
 
-    main(sourceFile, convertedSourceFile, synFile, convertedSynFile)
+    excel_file, gender = main(sourceFile, convertedSourceFile, synFile, convertedSynFile)
+    model_path = "All model WER\\" + compare_model + "\\" + gender
+    model_excel_file = [os.path.join(model_path, file) for file in os.listdir(model_path) if file.endswith('.xlsx')]
+    ec.main(excel_file, str(model_excel_file[0]))
