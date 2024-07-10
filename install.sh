@@ -27,3 +27,5 @@ pip install Jinja2
 pip install winapps
 
 pip install openpyxl
+
+pip install requests
