@@ -35,14 +35,15 @@ def getData(filePath):
     # Update keys in the dictionary
     updated_dict = {}
     for key, value in converted_dict.items():
-        if '_appVersion' in key:
-            new_key = key.split('_appVersion')[0] if '_appVersion' in key else key
-        elif '.txt' in key:
-            new_key = key.split('.txt')[0] if '.txt' in key else key
-        else:
-            new_key = key
+        new_key = key
+        if '_appVersion' in new_key:
+            new_key = new_key.split('_appVersion')[0]
+        if '.txt' in new_key:
+            new_key = new_key.split('.txt')[0]
+        if '.wav' in new_key:
+            new_key = new_key.split('.wav')[0]
         updated_dict[new_key] = value
-    print(updated_dict)
+    print("Updated data = {}".format(updated_dict))
     return updated_dict, model_version, app_version
 
 
@@ -53,8 +54,6 @@ def extract_version(filename, start_marker, end_marker):
 
 
 def main(file_path_mod1, file_path_mod2):
-    # file_path_mod1 = 'C:\\Users\\RaghavKR\\Desktop\\Testing_Female\\410\\Report_Source__Female__SynFile__extracted_recording_log_Report20240619_141258.xlsx'
-    # file_path_mod2 = 'C:\\Users\\RaghavKR\\Desktop\\option5,6,7\\option5,6,7\\option6\\Report_Source__Female_SynFile__extracted_recordingsFemale_option6_log_Report20240625_160603.xlsx'
 
     data_1, model_1, appVersion_1 = getData(file_path_mod1)
     data_2, model_2, appVersion_2 = getData(file_path_mod2)
@@ -92,5 +91,8 @@ def main(file_path_mod1, file_path_mod2):
 
 
 # if __name__ == "__main__":
-#     main()
+#     # file_path_mod1 = 'C:\\Users\\RaghavKR\\PycharmProjects\\testProject\\All model WER\\410\\Female\\Report_Source__Female__SynFile__extracted_recording_log_Report20240619_141258.xlsx'
+#     # file_path_mod2 = 'C:\\Users\\RaghavKR\\PycharmProjects\\testProject\\Report_Source___SynFile__extractedRecordingsFemale_log_Report20240711_181718.xlsx'
+#
+#     main(file_path_mod1, file_path_mod2)
 
