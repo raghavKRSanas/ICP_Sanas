@@ -10,19 +10,31 @@ import shutil
 import logging
 import asyncio
 import excelComparision as ec
+import subprocess
 
 
 DEEPGRAM_API_KEY = 'e6a85dbec9ab2cb5540e9b0e33106743c64a46fa'
 
-def convert_mp3_to_wav(mp3_file, output_folder):
-    # Load the MP3 file
-    audio = AudioSegment.from_mp3(mp3_file)
-    # Define the output WAV file path
-    wav_file = os.path.splitext(mp3_file)[0] + ".wav"
-    output_path = os.path.join(output_folder, os.path.basename(wav_file))
-    # Export the audio to WAV format
-    audio.export(output_path, format="wav")
-    logging.info("Conversion successful: {} -> {}".format(mp3_file, output_path))
+def convert_mp3_to_wav_ffmpeg(mp3_file, output_folder):
+    try:
+        # Define the output WAV file path
+        wav_file = os.path.splitext(os.path.basename(mp3_file))[0] + ".wav"
+        output_path = os.path.join(output_folder, wav_file)
+
+        # Command to convert MP3 to WAV using ffmpeg
+        command = ['ffmpeg', '-y', '-i', mp3_file, '-ac', '1', '-ar', '8000', output_path]
+
+
+        # Run the ffmpeg command
+        subprocess.run(command, check=True)
+
+        logging.info("Conversion successful: {} -> {}".format(mp3_file, output_path))
+
+        return output_path
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error converting {mp3_file} to WAV: {e}")
+        return None
 
 
 def convert_mp3_files_in_folder(folder_path, output_folder):
@@ -32,7 +44,11 @@ def convert_mp3_files_in_folder(folder_path, output_folder):
     for file_name in os.listdir(folder_path):
         if file_name.endswith(".mp3"):
             mp3_file = os.path.join(folder_path, file_name)
-            convert_mp3_to_wav(mp3_file, output_folder)
+            converted_file = convert_mp3_to_wav_ffmpeg(mp3_file, output_folder)
+            if converted_file:
+                logging.info(f"Converted {mp3_file} to {converted_file}")
+            else:
+                logging.error(f"Failed to convert {mp3_file}")
         if file_name.endswith(".wav"):
             logging.info("Copying to folder {} since it is already in .wav file format".format(output_folder))
             wav_file = os.path.join(folder_path, file_name)
@@ -41,6 +57,7 @@ def convert_mp3_files_in_folder(folder_path, output_folder):
                 shutil.copy(wav_file, destination)
             else:
                 logging.info("There is already a file existing with same name for file : {} ".format(wav_file))
+
 
 def convert_to_8000hz(input_folder, output_folder):
     # Create the output folder if it doesn't exist
@@ -56,7 +73,8 @@ def convert_and_resample(input_file, output_file, target_rate=8000):
     # Load the audio file
     audio = AudioSegment.from_wav(input_file)
     # Convert stereo to mono
-    audio = audio.set_channels(1)
+    if audio.channels > 1:
+        audio = audio.set_channels(1)
     # Check the sampling rate
     current_rate = audio.frame_rate
     # If the sampling rate is greater than the target rate, resample
@@ -206,9 +224,20 @@ def read_sentences(ref_path, hyp_path):
     return reference_sentence, hypothesis_sentence
 
 
+def is_wav_8000hz(file_path):
+    audio = AudioSegment.from_wav(file_path)
+    return audio.frame_rate == 8000
+
+
 def customize_audioTotext(rawFile, convertedFile):
     convert_mp3_files_in_folder(rawFile, convertedFile)
-    convert_to_8000hz(convertedFile, convertedFile)
+    for root, dirs, files in os.walk(convertedFile):
+        for file in files:
+            if file.endswith(".wav"):
+                wav_file = os.path.join(root, file)
+                if not is_wav_8000hz(wav_file):
+                    convert_to_8000hz(convertedFile, convertedFile)
+                    break
     asyncio.run(transcribe_wav_files(convertedFile))
     save_transcripts_to_text_files(convertedFile)
 
@@ -230,20 +259,29 @@ def generate_difference(convertedSourceFile, convertedSynFile):
         else:
             logging.error("Converted source folder is not found and even default source folder is also missing")
     ref_files = [file for file in os.listdir(ref_folder) if file.endswith('.txt')]
-    print("Number of files in hyp = {} in path {}".format(len(hyp_files), hyp_files))
-    print("Number of files in ref = {} in path {}".format(len(ref_files), ref_files))
-    assert len(ref_files) == len(hyp_files), "Number of files in reference and hypothesis folders must be the same."
     data = []
-    for ref_file, hyp_file in zip(ref_files, hyp_files):
-        ref_path = os.path.join(ref_folder, ref_file)
-        hyp_path = os.path.join(hyp_folder, hyp_file)
-        reference_sentence, hypothesis_sentence = read_sentences(ref_path, hyp_path)
-        wer_score, substituted, inserted, deleted = compare_files(reference_sentence, hypothesis_sentence)
-        data.append({'Reference File': ref_file, 'Hypothesis File': hyp_file, 'WER': wer_score,
-                     'Inserted': ' '.join(inserted), 'Deleted': ' '.join(deleted),
-                     'Substituted': ', '.join([' '.join(sub) for sub in substituted]),
-                     'Reference Text': reference_sentence, 'Hypothesis Text': hypothesis_sentence})
+    for ref_file in ref_files:
+        ref_file_name = ref_file.split('.txt')[0]
+        check = ref_file_name
+        for hyp_file in hyp_files:
+            if ref_file_name in hyp_file:
+                logging.info("comparing synth {} with source {}".format(hyp_file,ref_file))
+                print("comparing synth {} with source {}".format(hyp_file,ref_file))
+                ref_path = os.path.join(ref_folder, ref_file)
+                hyp_path = os.path.join(hyp_folder, hyp_file)
+                reference_sentence, hypothesis_sentence = read_sentences(ref_path, hyp_path)
+                wer_score, substituted, inserted, deleted = compare_files(reference_sentence, hypothesis_sentence)
+                data.append({'Reference File': ref_file, 'Hypothesis File': hyp_file, 'WER': wer_score,
+                             'Inserted': ' '.join(inserted), 'Deleted': ' '.join(deleted),
+                             'Substituted': ', '.join([' '.join(sub) for sub in substituted]),
+                             'Reference Text': reference_sentence, 'Hypothesis Text': hypothesis_sentence})
+                check = hyp_file
+                break
+        if check == ref_file_name:
+            logging.error("Synth file {} does not match any source file".format(check))
+            print("Synth file {} does not match any source file".format(check))
     return data, gender
+
 
 def main(sourceFile, convertedSourceFile, synFile, convertedSynFile, ):
     if not convertedSynFile:
@@ -267,15 +305,22 @@ if __name__ == "__main__":
     #Input Data
     sourceFile = ""
     convertedSourceFile = ''
-    synFile = "C:\\Users\\RaghavKR\\Desktop\\Testing609.3\\Male\\extracted_recordings\\extracted_recordings"
+    synFile = "C:\\Users\\RaghavKR\\Downloads\\AWS_Synth_RecordingsFemale_709\\extractedRecordingsFemale"
     convertedSynFile = ''
     compare_model = '410'
 
     # Logging File creation
     log_filename = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(synFile.split('\\')[-1])
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        handlers=[logging.FileHandler(log_filename), logging.StreamHandler()])
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_filename),
+            logging.StreamHandler()
+        ]
+    )
+
+    # Create logger
     logger = logging.getLogger(__name__)
 
     excel_file, gender = main(sourceFile, convertedSourceFile, synFile, convertedSynFile)
