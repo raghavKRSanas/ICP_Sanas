@@ -4,16 +4,17 @@
   "appDownloadDir" : "C:\\Users\\RaghavKR\\Downloads\\appdownload",
   "url" : "https://cdn-dev.sanas.ai/releases/v2-desktop-app/SanasAccentTranslator-V2-2.24.0604.27-phl-dev.exe",
 
-  "_comment2" : "Below is the Download path  and Destionation path for unzipped recordings",
+  "_comment2" : "Below is the Download path and Destination path for unzipped recordings",
   "download" : true,
-  "downloadDir" : "C:\\Users\\RaghavKR\\Downloads\\recordings",
+  "downloadDir" : "C:\\Users\\RaghavKR\\Downloads\\AWSrecordings",
   "downloadDestination" : "C:\\Users\\RaghavKR\\Desktop\\TEST",
 
   "_comment3": "Below is the source file path ",
-  "directory_path" : "C:\\Users\\RaghavKR\\Downloads\\TEST",
+  "directory_path" : "C:\\Users\\RaghavKR\\Desktop\\TEST",
 
   "_comment4" : "Below are the arguments needed according to each Dailer",
-  "dialerTesting" : "AWS",
+  "dialerTesting" : "Ringcentral",
+
   "Talkdesk" :
   {
     "userEmail": "namrata@sanas.ai",
@@ -28,7 +29,7 @@
   {
     "userEmail": "Raghav",
     "password": "Sanas@123",
-    "backupcode" : "Epv1YHtxD5",
+    "backupcode" : "2jmV9lG23K",
     "audioInput": "Microphone (Sanas Virtual Audio)",
     "countryCode": "India (+91)",
     "phoneNumber": "+12098677235",
@@ -41,6 +42,16 @@
     "password": "Sanas@123",
     "phoneNumber": "+12098677235",
     "numberRetryCalls" : 3,
+    "newSession" : true
+  },
+  "RingCentral" :
+  {
+    "userEmail": "Syed@sanas.ai",
+    "password": "Admin@123",
+    "phoneNumber": "+917899632046",
+    "audioInput": "Sanas Microphone (Sanas Virtual Audio)",
+    "numberRetryCalls" : 3,
+    "receiverBufferTime" : 15,
     "newSession" : true
   }
 }
