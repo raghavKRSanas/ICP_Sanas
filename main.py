@@ -4,7 +4,7 @@ import downloadApp as dapp
 import launchApplication as lapp
 from datetime import datetime
 import logging
-import getConversationID
+import getConverstionID
 
 
 def readInputValues(filename):
@@ -26,8 +26,9 @@ appDownloadDir = inputData["appDownloadDir"]
 # Dailer and respective dailer python file to import and run
 files = {
     'Talkdesk': 'talkdesk',
-    '8X8': '8X8',
-    'AWS': 'awsDailer'
+    '8X8': '8x8',
+    'AWS': 'awsDailer',
+    'Ringcentral': 'ringCentral'
 }
 
 
@@ -51,24 +52,24 @@ def main():
     #     dapp.downloadApp(url, appDownloadDir)
     #     dapp.installApp(url, appDownloadDir)
 
-
     #lapp.cmdlauchApp(appPath)
     importModule = files[dialerTesting]
     dailerPy = __import__(importModule)
     dailerPy.main()
+
     if dialerTesting == 'Talkdesk' and download:
         #Added sleep time since the recording updation takes 30sec in dailer
         time.sleep(30)
         #log_filename = "Talkdesk_automation_log_20240618_193928.log"
-        conversationIDDict = getConversationID.getConversationID(log_filename, dialerTesting)
+        conversationIDDict = getConverstionID.getConversationID(log_filename, dialerTesting)
         import talkdeskDownloader as td
         td.main(conversationIDDict, downloadDir, downloadDestination)
 
     if dialerTesting == 'AWS' and download:
         # Added sleep time since the recording update takes 30sec in dailer
         time.sleep(30)
-        log_filename = "AWS_automation_log_20240703_165656.log"
-        conversationIDDict = getConversationID.getConversationID(log_filename, dialerTesting)
+        #log_filename = "AWS_automation_log_20240703_194305.log"
+        conversationIDDict = getConverstionID.getConversationID(log_filename, dialerTesting)
         import awsDownloader as ad
         ad.main(conversationIDDict, downloadDir, downloadDestination)
 
