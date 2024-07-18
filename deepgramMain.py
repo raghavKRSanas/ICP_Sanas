@@ -262,7 +262,6 @@ def generate_difference(convertedSourceFile, convertedSynFile):
     data = []
     for ref_file in ref_files:
         ref_file_name = ref_file.split('.txt')[0]
-        check = ref_file_name
         for hyp_file in hyp_files:
             if ref_file_name in hyp_file:
                 logging.info("comparing synth {} with source {}".format(hyp_file,ref_file))
@@ -275,11 +274,10 @@ def generate_difference(convertedSourceFile, convertedSynFile):
                              'Inserted': ' '.join(inserted), 'Deleted': ' '.join(deleted),
                              'Substituted': ', '.join([' '.join(sub) for sub in substituted]),
                              'Reference Text': reference_sentence, 'Hypothesis Text': hypothesis_sentence})
-                check = hyp_file
+                hyp_files.remove(hyp_file)
                 break
-        if check == ref_file_name:
-            logging.error("Synth file {} does not match any source file".format(check))
-            print("Synth file {} does not match any source file".format(check))
+    if hyp_files:
+        logging.error("Synth file {} does not match any synth file".format(hyp_files))
     return data, gender
 
 
@@ -305,9 +303,16 @@ if __name__ == "__main__":
     #Input Data
     sourceFile = ""
     convertedSourceFile = ''
-    synFile = "C:\\Users\\RaghavKR\\Downloads\\AWS_Synth_RecordingsFemale_709\\extractedRecordingsFemale"
+    synFile = "C:\\Users\\RaghavKR\\Downloads\\702\\702\\702 Female Synth"
     convertedSynFile = ''
-    compare_model = '410'
+    
+    '''
+        For comparing generated output with respective models:
+        - Use '410' for comparison with the 410 model: compare_model = '410'
+        - Use '702' for comparison with the 702 model: compare_model = '702'
+        - Use an empty string to skip comparison: compare_model = ''
+    '''
+    compare_model = ''
 
     # Logging File creation
     log_filename = "Report_Source__" + str(sourceFile.split('\\')[-1] + '_SynFile__') + str(synFile.split('\\')[-1])
@@ -324,6 +329,9 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
     excel_file, gender = main(sourceFile, convertedSourceFile, synFile, convertedSynFile)
-    model_path = "All model WER\\" + compare_model + "\\" + gender
-    model_excel_file = [os.path.join(model_path, file) for file in os.listdir(model_path) if file.endswith('.xlsx')]
-    ec.main(excel_file, str(model_excel_file[0]))
+    if compare_model:
+        model_path = "All model WER\\" + compare_model + "\\" + gender
+        model_excel_file = [os.path.join(model_path, file) for file in os.listdir(model_path) if file.endswith('.xlsx')]
+        ec.main(excel_file, str(model_excel_file[0]))
+
+
