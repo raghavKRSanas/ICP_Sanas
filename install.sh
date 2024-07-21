@@ -24,6 +24,8 @@ pip install matplotlib
 
 pip install Jinja2
 
+pip install deepgram-sdk==2.12.0
+
 pip install winapps
 
 pip install openpyxl
