@@ -28,6 +28,8 @@ pip install deepgram-sdk==2.12.0
 
 pip install winapps
 
+pip install colorlog
+
 pip install openpyxl
 
 pip install requests
