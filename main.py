@@ -4,7 +4,7 @@ import downloadApp as dapp
 import launchApplication as lapp
 from datetime import datetime
 import logging
-import getConverstionID
+import getConversationID
 
 
 def readInputValues(filename):
@@ -61,7 +61,7 @@ def main():
         #Added sleep time since the recording updation takes 30sec in dailer
         time.sleep(30)
         #log_filename = "Talkdesk_automation_log_20240618_193928.log"
-        conversationIDDict = getConverstionID.getConversationID(log_filename, dialerTesting)
+        conversationIDDict = getConversationID.getConversationID(log_filename, dialerTesting)
         import talkdeskDownloader as td
         td.main(conversationIDDict, downloadDir, downloadDestination)
 
@@ -69,7 +69,7 @@ def main():
         # Added sleep time since the recording update takes 30sec in dailer
         time.sleep(30)
         #log_filename = "AWS_automation_log_20240703_194305.log"
-        conversationIDDict = getConverstionID.getConversationID(log_filename, dialerTesting)
+        conversationIDDict = getConversationID.getConversationID(log_filename, dialerTesting)
         import awsDownloader as ad
         ad.main(conversationIDDict, downloadDir, downloadDestination)
 
