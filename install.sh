@@ -18,6 +18,8 @@ pip install pydub
 
 pip install pandas
 
+pip install pyotp
+
 pip install inflect
 
 pip install matplotlib
