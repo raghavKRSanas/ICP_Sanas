@@ -220,7 +220,7 @@ def main():
     try:
         mfaLogin(driver, secretkey)
     except:
-        logging.error("Not able to login due MFA")
+        logging.error("MFA was detected so continuing with next step")
     driver.implicitly_wait(5)
 
     # Microphone configuration setup
