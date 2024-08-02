@@ -183,6 +183,16 @@ def talkdeskLogin(driver, userEmail, password):
             return
 
 
+def mfaLogin(driver, secretkey):
+    import pyotp
+    totp = pyotp.TOTP(secretkey)
+    mfaCode = totp.now()
+    print(f"Login mfa code {mfaCode}")
+    WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Verification code']"))).send_keys(mfaCode)
+    driver.find_element(By.XPATH, "//button[@type='submit']").click()
+
+
 # Reading all values from json file
 inputData = readInputValues('variable.json')
 userEmail = inputData['Talkdesk']['userEmail']
@@ -194,6 +204,7 @@ directory_path = inputData['directory_path']
 appPath = inputData['appLocation']
 overRidingSession = inputData['Talkdesk']['newSession']
 numberRetryCalls = inputData['Talkdesk']['numberRetryCalls']
+secretkey = inputData['Talkdesk']['secretkey']
 
 
 def main():
@@ -206,6 +217,10 @@ def main():
 
     # Talkdesk Login
     talkdeskLogin(driver, userEmail, password)
+    try:
+        mfaLogin(driver, secretkey)
+    except:
+        logging.error("Not able to login due MFA")
     driver.implicitly_wait(5)
 
     # Microphone configuration setup
