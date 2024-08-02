@@ -23,7 +23,8 @@
     "countryCode": "India (+91)",
     "phoneNumber": "+19714446282",
     "newSession" : true,
-    "numberRetryCalls" : 3
+    "numberRetryCalls" : 3,
+    "secretkey" : "Q56TVMXDGWMHNZYW"
   },
   "8x8" :
   {
